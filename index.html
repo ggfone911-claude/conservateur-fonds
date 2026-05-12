@@ -1778,8 +1778,6 @@ class TinyChart {
     this.datasets= cfg.datasets|| [];
     this._hov    = -1;
     this._hovX   = -1;
-    this._ro = new ResizeObserver(()=>this._resize());
-    this._ro.observe(canvas.parentElement);
     canvas.addEventListener('mousemove', e=>this._onMove(e));
     canvas.addEventListener('mouseleave',()=>{ this._hov=-1; this._hovX=-1; this.render(); });
     this._resize();
@@ -1988,6 +1986,11 @@ function showTab(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('tab_'+id).classList.add('active');
   document.getElementById('sec_'+id).classList.add('active');
+  // Force redraw after layout recalc (ResizeObserver unreliable on display:none → block)
+  requestAnimationFrame(() => {
+    if (barInstances[id])  barInstances[id]._resize();
+    if (lineInstances[id]) lineInstances[id]._resize();
+  });
 }
 
 // ── Table sort ─────────────────────────────────────────────────────────────
@@ -2070,7 +2073,7 @@ LINE_CHARTS.forEach(c => {
 });
 
 function filterLinePeriod(catId, period) {
-  document.querySelectorAll('.period-btn[data-cat="'+catId+'"]').forEach(b => {
+  document.querySelectorAll('.period-btn[data-cat="'+catId+'"][data-period]').forEach(b => {
     b.classList.toggle('active', b.dataset.period === period);
   });
   const chart = lineInstances[catId];
@@ -2082,6 +2085,26 @@ function filterLinePeriod(catId, period) {
   }));
   chart.setData(LINE_ALL_LABELS.slice(start), newDs);
 }
+
+// ── Resize fenêtre (debounce 120ms — sans boucle) ─────────────────────────
+let _rTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_rTimer);
+  _rTimer = setTimeout(() => {
+    const activeTab = document.querySelector('.tab.active');
+    if (!activeTab) return;
+    const id = activeTab.id.replace('tab_','');
+    if (barInstances[id])  barInstances[id]._resize();
+    if (lineInstances[id]) lineInstances[id]._resize();
+  }, 120);
+});
+
+// ── Init : redessiner le premier onglet après layout complet ───────────────
+window.addEventListener('load', () => {
+  const firstId = 'monetaire';
+  if (barInstances[firstId])  barInstances[firstId]._resize();
+  if (lineInstances[firstId]) lineInstances[firstId]._resize();
+});
 </script>
 </body>
 </html>

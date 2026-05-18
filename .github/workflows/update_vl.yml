@@ -39,6 +39,18 @@ jobs:
             echo "⚠️ vl_overrides.json absent — on utilise les données PDF"
           fi
 
+      - name: Correction du chemin de sortie
+        run: |
+          python3 -c "
+          import re
+          with open('gen_app_v2.py', 'r', encoding='utf-8') as f:
+              content = f.read()
+          content = re.sub(r\"out_path = '[^']*'\", \"out_path = 'index.html'\", content)
+          with open('gen_app_v2.py', 'w', encoding='utf-8') as f:
+              f.write(content)
+          print('✅ out_path corrigé → index.html')
+          "
+
       - name: Régénération de index.html
         run: |
           python gen_app_v2.py

@@ -65,6 +65,7 @@ jobs:
           else
             DATE=$(date '+%d/%m/%Y %H:%M')
             git commit -m "📈 Mise à jour VL Boursorama — ${DATE}"
+            git pull --rebase origin main
             git push
             echo "✅ Déployé sur GitHub Pages"
           fi

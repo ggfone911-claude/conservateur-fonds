@@ -156,96 +156,96 @@ def bourso_url(bid):
 # ─────────────────────────────────────────────────────────────────────────────
 CATEGORIES = [
   {"id":"monetaire","label":"Monétaire / Oblig. CT","color":"#3266ad","funds":[
-    {"isin":"FR0013287315","name":"Palatine Monétaire Court Terme (R)","mgr":"Palatine AM","vl":641.55,"ytd":0.68,"srri":1},
-    {"isin":"FR0011461326","name":"Conservateur Oblig. CT (C)","mgr":"Conservateur Gestion Valor","vl":112.32,"ytd":0.54,"srri":1},
-    {"isin":"LU1585265066","name":"TF - Tikehau Short Duration (R)","mgr":"Tikehau IM","vl":132.88,"ytd":0.29,"srri":1},
+    {"isin":"FR0013287315","name":"Palatine Monétaire Court Terme (R)","mgr":"Palatine AM","vl":642.78,"ytd":0.88,"srri":1},
+    {"isin":"FR0011461326","name":"Conservateur Oblig. CT (C)","mgr":"Conservateur Gestion Valor","vl":112.46,"ytd":0.66,"srri":1},
+    {"isin":"LU1585265066","name":"TF - Tikehau Short Duration (R)","mgr":"Tikehau IM","vl":133.20,"ytd":0.53,"srri":1},
   ]},
   {"id":"oblig_lt","label":"Obligataire LT","color":"#2a5298","funds":[
-    {"isin":"LU1694790202","name":"DNCA INVEST Flex Inflation","mgr":"DNCA Finance","vl":117.02,"ytd":1.51,"srri":3},
-    {"isin":"FR0010915314","name":"LF Obligations Carbon Impact C","mgr":"La Française AM Int.","vl":26.85,"ytd":-0.07,"srri":3},
-    {"isin":"FR0010564328","name":"Conservateur Oblig. MT (C)","mgr":"Conservateur Gestion Valor","vl":300.39,"ytd":-0.10,"srri":3},
-    {"isin":"LU1752460292","name":"Oddo Sustainable Credit Optn CR","mgr":"Oddo AM","vl":113.96,"ytd":-0.83,"srri":3},
+    {"isin":"LU1694790202","name":"DNCA INVEST Flex Inflation","mgr":"DNCA Finance","vl":117.11,"ytd":1.59,"srri":3},
+    {"isin":"FR0010915314","name":"LF Obligations Carbon Impact C","mgr":"La Française AM Int.","vl":26.99,"ytd":0.45,"srri":3},
+    {"isin":"FR0010564328","name":"Conservateur Oblig. MT (C)","mgr":"Conservateur Gestion Valor","vl":301.51,"ytd":0.28,"srri":3},
+    {"isin":"LU1752460292","name":"Oddo Sustainable Credit Optn CR","mgr":"Oddo AM","vl":114.46,"ytd":-0.39,"srri":3},
   ]},
   {"id":"oblig_horizon","label":"Oblig. à Horizon","color":"#1a3a6b","funds":[
-    {"isin":"FR0013398294","name":"Conservateur Horizon 2027 (I)","mgr":"Conservateur Gestion Valor","vl":11848.65,"ytd":0.52,"srri":2},
-    {"isin":"FR0013426657","name":"Oddo BHF Global Target 2026 (CR)","mgr":"Oddo AM","vl":114.77,"ytd":0.51,"srri":2},
-    {"isin":"FR0013398302","name":"Conservateur Horizon 2027 (C)","mgr":"Conservateur Gestion Valor","vl":1159.55,"ytd":0.42,"srri":2},
-    {"isin":"FR001400PKZ3","name":"Conservateur Horizon 2031 (I)","mgr":"Conservateur Gestion Valor","vl":10558.46,"ytd":0.34,"srri":2},
-    {"isin":"FR001400PL02","name":"Conservateur Horizon 2031 (C)","mgr":"Conservateur Gestion Valor","vl":1052.52,"ytd":0.17,"srri":2},
+    {"isin":"FR0013398294","name":"Conservateur Horizon 2027 (I)","mgr":"Conservateur Gestion Valor","vl":11896.04,"ytd":0.93,"srri":2},
+    {"isin":"FR0013426657","name":"Oddo BHF Global Target 2026 (CR)","mgr":"Oddo AM","vl":115.07,"ytd":0.77,"srri":2},
+    {"isin":"FR0013398302","name":"Conservateur Horizon 2027 (C)","mgr":"Conservateur Gestion Valor","vl":1163.78,"ytd":0.79,"srri":2},
+    {"isin":"FR001400PKZ3","name":"Conservateur Horizon 2031 (I)","mgr":"Conservateur Gestion Valor","vl":10628.80,"ytd":1.01,"srri":2},
+    {"isin":"FR001400PL02","name":"Conservateur Horizon 2031 (C)","mgr":"Conservateur Gestion Valor","vl":1058.99,"ytd":0.78,"srri":2},
   ]},
   {"id":"mixtes_oblig","label":"Mixtes Obligataires","color":"#0d6efd","funds":[
-    {"isin":"LU0512124107","name":"DNCA Invest - Convertibles (B)","mgr":"DNCA Finance","vl":187.36,"ytd":7.84,"srri":4},
-    {"isin":"FR0010135103","name":"Carmignac Patrimoine (A)","mgr":"Carmignac Gestion","vl":818.36,"ytd":3.69,"srri":4},
-    {"isin":"FR0010564336","name":"Conservateur Diversifié (C)","mgr":"Conservateur Gestion Valor","vl":214.57,"ytd":2.26,"srri":4},
+    {"isin":"LU0512124107","name":"DNCA Invest - Convertibles (B)","mgr":"DNCA Finance","vl":191.32,"ytd":10.12,"srri":4},
+    {"isin":"FR0010135103","name":"Carmignac Patrimoine (A)","mgr":"Carmignac Gestion","vl":819.36,"ytd":3.82,"srri":4},
+    {"isin":"FR0010564336","name":"Conservateur Diversifié (C)","mgr":"Conservateur Gestion Valor","vl":212.52,"ytd":1.28,"srri":4},
     {"isin":"FR0007051040","name":"Eurose (C)","mgr":"DNCA Finance","vl":474.81,"ytd":2.07,"srri":3},
-    {"isin":"FR0011199314","name":"Conservateur Immo-Or (C)","mgr":"Conservateur Gestion Valor","vl":127.31,"ytd":1.65,"srri":4},
-    {"isin":"FR0010489542","name":"Conservateur Diversifié Réactif (C)","mgr":"Conservateur Gestion Valor","vl":188.07,"ytd":1.43,"srri":4},
-    {"isin":"FR0007439666","name":"Congrégation Investissement (C)","mgr":"Conservateur Gestion Valor","vl":10308.94,"ytd":1.03,"srri":4},
-    {"isin":"FR001400UAZ4","name":"Congrégation Investissement (R)","mgr":"Conservateur Gestion Valor","vl":1026.54,"ytd":0.00,"srri":4},
-    {"isin":"FR0013087152","name":"Conservateur Rendement Flexible (C)","mgr":"Conservateur Gestion Valor","vl":118.94,"ytd":-0.18,"srri":4},
+    {"isin":"FR0011199314","name":"Conservateur Immo-Or (C)","mgr":"Conservateur Gestion Valor","vl":123.86,"ytd":-1.10,"srri":4},
+    {"isin":"FR0010489542","name":"Conservateur Diversifié Réactif (C)","mgr":"Conservateur Gestion Valor","vl":190.52,"ytd":2.75,"srri":4},
+    {"isin":"FR0007439666","name":"Congrégation Investissement (C)","mgr":"Conservateur Gestion Valor","vl":10560.83,"ytd":3.50,"srri":4},
+    {"isin":"FR001400UAZ4","name":"Congrégation Investissement (R)","mgr":"Conservateur Gestion Valor","vl":1050.39,"ytd":0.00,"srri":4},
+    {"isin":"FR0013087152","name":"Conservateur Rendement Flexible (C)","mgr":"Conservateur Gestion Valor","vl":119.29,"ytd":0.12,"srri":4},
     {"isin":"LU1694789451","name":"DNCA Invest Alpha Bonds (A)","mgr":"DNCA Finance","vl":131.09,"ytd":None,"srri":3},
   ]},
   {"id":"actions_fr","label":"Actions Françaises","color":"#198754","funds":[
-    {"isin":"FR0007076930","name":"Centifolia (C)","mgr":"DNCA Finance","vl":548.27,"ytd":9.46,"srri":6},
-    {"isin":"FR001400U512","name":"Conservateur Investissement Proximité (C)","mgr":"Conservateur Gestion Valor","vl":109.40,"ytd":4.63,"srri":6},
-    {"isin":"FR0000989899","name":"Oddo BHF Avenir (CR)","mgr":"Oddo AM","vl":4704.93,"ytd":2.90,"srri":6},
-    {"isin":"FR0010547869","name":"SEXTANT PME-A","mgr":"Amiral Gestion","vl":309.08,"ytd":1.16,"srri":6},
-    {"isin":"FR0000978439","name":"Palatine France Small Cap (I)","mgr":"Palatine AM","vl":873.81,"ytd":0.27,"srri":6},
-    {"isin":"FR0010574434","name":"Oddo BHF Génération (CR)","mgr":"Oddo AM","vl":1036.30,"ytd":-1.12,"srri":6},
-    {"isin":"FRBCP1260215","name":"LC Athena action Stellantis 11/2030","mgr":"","vl":810.50,"ytd":-17.14,"srri":7},
+    {"isin":"FR0007076930","name":"Centifolia (C)","mgr":"DNCA Finance","vl":130.91,"ytd":9.46,"srri":6},
+    {"isin":"FR001400U512","name":"Conservateur Investissement Proximité (C)","mgr":"Conservateur Gestion Valor","vl":111.50,"ytd":6.64,"srri":6},
+    {"isin":"FR0000989899","name":"Oddo BHF Avenir (CR)","mgr":"Oddo AM","vl":4610.04,"ytd":0.83,"srri":6},
+    {"isin":"FR0010547869","name":"SEXTANT PME-A","mgr":"Amiral Gestion","vl":311.29,"ytd":1.89,"srri":6},
+    {"isin":"FR0000978439","name":"Palatine France Small Cap (I)","mgr":"Palatine AM","vl":870.44,"ytd":-0.12,"srri":6},
+    {"isin":"FR0010574434","name":"Oddo BHF Génération (CR)","mgr":"Oddo AM","vl":1050.68,"ytd":0.25,"srri":6},
+    {"isin":"FRBCP1260215","name":"LC Athena action Stellantis 11/2030","mgr":"","vl":776.40,"ytd":-20.63,"srri":7},
   ]},
   {"id":"actions_eu","label":"Actions Européennes","color":"#20c997","funds":[
-    {"isin":"FR0010321810","name":"Echiquier Agenor Mid Cap Europe (A)","mgr":"Financière de l'Echiquier","vl":471.33,"ytd":9.57,"srri":6},
-    {"isin":"FR0010106500","name":"Echiquier Excelsior A","mgr":"Financière de l'Echiquier","vl":531.16,"ytd":6.74,"srri":6},
-    {"isin":"FR0000983819","name":"OFI Croiss Durable & Solidaire C","mgr":"OFI AM","vl":305.32,"ytd":5.28,"srri":6},
-    {"isin":"FR0014008EH4","name":"Conservateur Actions Euro (I)","mgr":"Conservateur Gestion Valor","vl":166293.13,"ytd":4.68,"srri":6},
-    {"isin":"FR0011606268","name":"Oddo BHF Active SMALL CAP (CR)","mgr":"Oddo AM","vl":243.92,"ytd":4.38,"srri":6},
-    {"isin":"FR0014008EI2","name":"Conservateur Actions Euro (C)","mgr":"Conservateur Gestion Valor","vl":157.41,"ytd":4.20,"srri":6},
-    {"isin":"FR0010321802","name":"Echiquier Agressor (A)","mgr":"Financière de l'Echiquier","vl":2137.14,"ytd":3.40,"srri":6},
-    {"isin":"FR0000989915","name":"Oddo BHF Immobilier (CR)","mgr":"Oddo AM","vl":1745.76,"ytd":2.71,"srri":5},
-    {"isin":"FR0010298596","name":"Moneta Multi Caps (C)","mgr":"Moneta AM","vl":464.94,"ytd":2.56,"srri":6},
-    {"isin":"FR0013256930","name":"Conservateur Actions Flexibles (C)","mgr":"Conservateur Gestion Valor","vl":135.03,"ytd":2.30,"srri":5},
-    {"isin":"LU0870553020","name":"DNCA Invest SRI Europe Growth (A)","mgr":"DNCA Finance","vl":278.17,"ytd":0.71,"srri":6},
-    {"isin":"FR0010149179","name":"Carmignac Absolute Return Europe (A)","mgr":"Carmignac Gestion","vl":419.63,"ytd":-0.09,"srri":5},
-    {"isin":"FR0010038257","name":"Conservateur Emploi Durable (C)","mgr":"Palatine AM","vl":285.38,"ytd":-1.43,"srri":6},
-    {"isin":"LU1490785091","name":"DNCA Invest SRI Norden Europe A","mgr":"DNCA Finance","vl":200.95,"ytd":-1.57,"srri":6},
+    {"isin":"FR0010321810","name":"Echiquier Agenor Mid Cap Europe (A)","mgr":"Financière de l'Echiquier","vl":473.20,"ytd":10.01,"srri":6},
+    {"isin":"FR0010106500","name":"Echiquier Excelsior A","mgr":"Financière de l'Echiquier","vl":550.10,"ytd":10.55,"srri":6},
+    {"isin":"FR0000983819","name":"OFI Croiss Durable & Solidaire C","mgr":"OFI AM","vl":318.41,"ytd":9.80,"srri":6},
+    {"isin":"FR0014008EH4","name":"Conservateur Actions Euro (I)","mgr":"Conservateur Gestion Valor","vl":171412.91,"ytd":7.91,"srri":6},
+    {"isin":"FR0011606268","name":"Oddo BHF Active SMALL CAP (CR)","mgr":"Oddo AM","vl":240.73,"ytd":3.01,"srri":6},
+    {"isin":"FR0014008EI2","name":"Conservateur Actions Euro (C)","mgr":"Conservateur Gestion Valor","vl":162.03,"ytd":7.25,"srri":6},
+    {"isin":"FR0010321802","name":"Echiquier Agressor (A)","mgr":"Financière de l'Echiquier","vl":2145.00,"ytd":3.79,"srri":6},
+    {"isin":"FR0000989915","name":"Oddo BHF Immobilier (CR)","mgr":"Oddo AM","vl":1699.03,"ytd":-0.03,"srri":5},
+    {"isin":"FR0010298596","name":"Moneta Multi Caps (C)","mgr":"Moneta AM","vl":479.64,"ytd":5.80,"srri":6},
+    {"isin":"FR0013256930","name":"Conservateur Actions Flexibles (C)","mgr":"Conservateur Gestion Valor","vl":138.76,"ytd":5.13,"srri":5},
+    {"isin":"LU0870553020","name":"DNCA Invest SRI Europe Growth (A)","mgr":"DNCA Finance","vl":286.34,"ytd":3.67,"srri":6},
+    {"isin":"FR0010149179","name":"Carmignac Absolute Return Europe (A)","mgr":"Carmignac Gestion","vl":419.89,"ytd":-0.02,"srri":5},
+    {"isin":"FR0010038257","name":"Conservateur Emploi Durable (C)","mgr":"Palatine AM","vl":285.15,"ytd":-1.51,"srri":6},
+    {"isin":"LU1490785091","name":"DNCA Invest SRI Norden Europe A","mgr":"DNCA Finance","vl":206.41,"ytd":1.11,"srri":6},
   ]},
   {"id":"actions_int","label":"Actions Internationales","color":"#fd7e14","funds":[
-    {"isin":"LU0280435388","name":"Pictet - Clean Energy Transition (P)","mgr":"Pictet AM Europe","vl":226.94,"ytd":28.37,"srri":7},
-    {"isin":"FR0000292278","name":"Magellan (C)","mgr":"Comgest AM","vl":27.95,"ytd":24.50,"srri":6},
-    {"isin":"FR0010649079","name":"Palatine Planète (R)","mgr":"Palatine AM","vl":56.21,"ytd":20.08,"srri":6},
-    {"isin":"LU0115768185","name":"FF - Sustainable Asia Equity Fund (E)","mgr":"Fidelity AM","vl":87.84,"ytd":18.98,"srri":6},
-    {"isin":"LU1744646933","name":"LF IP Carbon Impact Global R","mgr":"La Française AM Int.","vl":210.39,"ytd":16.35,"srri":6},
-    {"isin":"LU1819480192","name":"Echiquier Artificial Intelligence (B)","mgr":"Financière de l'Echiquier","vl":281.67,"ytd":16.28,"srri":7},
-    {"isin":"LU0592698954","name":"Carmignac Portf. Emerging Patrimoine (A)","mgr":"Carmignac Gestion","vl":176.56,"ytd":11.63,"srri":6},
-    {"isin":"LU0592699093","name":"Carmignac Portf. Emerging Patrimoine (E)","mgr":"Carmignac Gestion","vl":158.71,"ytd":11.35,"srri":6},
-    {"isin":"LU2254337392","name":"DNCA INVEST - Beyond Climate (A)","mgr":"DNCA Finance","vl":130.85,"ytd":10.28,"srri":6},
-    {"isin":"FR0010148981","name":"Carmignac Investissement (A)","mgr":"Carmignac Gestion","vl":2780.88,"ytd":8.64,"srri":6},
-    {"isin":"FR0010863688","name":"Echiquier Positive Impact (A)","mgr":"Financière de l'Echiquier","vl":303.70,"ytd":7.81,"srri":6},
-    {"isin":"LU1261432659","name":"FF - World Fund (A)","mgr":"Fidelity AM","vl":25.92,"ytd":6.97,"srri":6},
-    {"isin":"LU1902443420","name":"CPR Invest Climate Action (A)","mgr":"CPR AM","vl":203.93,"ytd":6.44,"srri":6},
-    {"isin":"FR0010564229","name":"Conservateur Actions Monde (C)","mgr":"Conservateur Gestion Valor","vl":539.31,"ytd":5.61,"srri":6},
-    {"isin":"LU1103305709","name":"EdR Fund - Us Value (R)","mgr":"Edmond de Rothschild AM","vl":442.81,"ytd":5.57,"srri":6},
-    {"isin":"LU1244893696","name":"EdR Fund - Big Data (A)","mgr":"Edmond de Rothschild AM","vl":349.23,"ytd":4.89,"srri":6},
-    {"isin":"LU1120766388","name":"Candriam Equities L Biotechnology (C)","mgr":"Candriam Lux","vl":296.14,"ytd":4.57,"srri":7},
-    {"isin":"FR0000974149","name":"Oddo BHF Avenir Europe (CR)","mgr":"Oddo AM","vl":721.12,"ytd":4.12,"srri":6},
-    {"isin":"LU0528228074","name":"FF - Sustainable Demographics Fund (A)","mgr":"Fidelity AM","vl":32.80,"ytd":4.13,"srri":6},
-    {"isin":"LU1892829828","name":"FF - Sustainable Water & Waste Fund (A)","mgr":"Fidelity AM","vl":15.01,"ytd":3.45,"srri":6},
-    {"isin":"LU1653748860","name":"CPR Invest - Food For Generations (A)","mgr":"CPR AM","vl":119.35,"ytd":0.38,"srri":6},
-    {"isin":"FR0013367265","name":"R-co Valor Balanced (C)","mgr":"Rothschild et Cie Gestion","vl":148.49,"ytd":-1.08,"srri":5},
-    {"isin":"FR0012844140","name":"CPR Global Silver Age (E)","mgr":"CPR AM","vl":126.77,"ytd":-4.27,"srri":6},
-    {"isin":"LU1160365091","name":"EdR Fund - China (A)","mgr":"Edmond de Rothschild AM","vl":321.23,"ytd":-5.12,"srri":7},
-    {"isin":"LU0366534344","name":"Pictet - Nutrition (P)","mgr":"Pictet AM Europe","vl":198.32,"ytd":-6.22,"srri":6},
-    {"isin":"FR0000295230","name":"Comgest Renaissance Europe (C)","mgr":"Comgest AM","vl":224.76,"ytd":-7.15,"srri":6},
-    {"isin":"LU0217139020","name":"Pictet - Premium Brands (P)","mgr":"Pictet AM Europe","vl":267.46,"ytd":-7.91,"srri":5},
-    {"isin":"FR0010479931","name":"EdR India (A)","mgr":"Edmond de Rothschild AM","vl":476.93,"ytd":-10.47,"srri":7},
+    {"isin":"LU0280435388","name":"Pictet - Clean Energy Transition (P)","mgr":"Pictet AM Europe","vl":242.71,"ytd":37.29,"srri":7},
+    {"isin":"FR0000292278","name":"Magellan (C)","mgr":"Comgest AM","vl":27.92,"ytd":24.37,"srri":6},
+    {"isin":"FR0010649079","name":"Palatine Planète (R)","mgr":"Palatine AM","vl":57.82,"ytd":23.52,"srri":6},
+    {"isin":"LU0115768185","name":"FF - Sustainable Asia Equity Fund (E)","mgr":"Fidelity AM","vl":92.35,"ytd":25.08,"srri":6},
+    {"isin":"LU1744646933","name":"LF IP Carbon Impact Global R","mgr":"La Française AM Int.","vl":208.40,"ytd":15.25,"srri":6},
+    {"isin":"LU1819480192","name":"Echiquier Artificial Intelligence (B)","mgr":"Financière de l'Echiquier","vl":300.64,"ytd":24.11,"srri":7},
+    {"isin":"LU0592698954","name":"Carmignac Portf. Emerging Patrimoine (A)","mgr":"Carmignac Gestion","vl":176.04,"ytd":11.30,"srri":6},
+    {"isin":"LU0592699093","name":"Carmignac Portf. Emerging Patrimoine (E)","mgr":"Carmignac Gestion","vl":158.10,"ytd":10.92,"srri":6},
+    {"isin":"LU2254337392","name":"DNCA INVEST - Beyond Climate (A)","mgr":"DNCA Finance","vl":133.80,"ytd":12.77,"srri":6},
+    {"isin":"FR0010148981","name":"Carmignac Investissement (A)","mgr":"Carmignac Gestion","vl":2829.86,"ytd":10.55,"srri":6},
+    {"isin":"FR0010863688","name":"Echiquier Positive Impact (A)","mgr":"Financière de l'Echiquier","vl":303.69,"ytd":7.81,"srri":6},
+    {"isin":"LU1261432659","name":"FF - World Fund (A)","mgr":"Fidelity AM","vl":26.70,"ytd":10.19,"srri":6},
+    {"isin":"LU1902443420","name":"CPR Invest Climate Action (A)","mgr":"CPR AM","vl":212.11,"ytd":10.70,"srri":6},
+    {"isin":"FR0010564229","name":"Conservateur Actions Monde (C)","mgr":"Conservateur Gestion Valor","vl":552.20,"ytd":8.13,"srri":6},
+    {"isin":"LU1103305709","name":"EdR Fund - Us Value (R)","mgr":"Edmond de Rothschild AM","vl":463.71,"ytd":10.55,"srri":6},
+    {"isin":"LU1244893696","name":"EdR Fund - Big Data (A)","mgr":"Edmond de Rothschild AM","vl":359.98,"ytd":8.12,"srri":6},
+    {"isin":"LU1120766388","name":"Candriam Equities L Biotechnology (C)","mgr":"Candriam Lux","vl":295.77,"ytd":4.44,"srri":7},
+    {"isin":"FR0000974149","name":"Oddo BHF Avenir Europe (CR)","mgr":"Oddo AM","vl":711.53,"ytd":2.74,"srri":6},
+    {"isin":"LU0528228074","name":"FF - Sustainable Demographics Fund (A)","mgr":"Fidelity AM","vl":32.61,"ytd":3.52,"srri":6},
+    {"isin":"LU1892829828","name":"FF - Sustainable Water & Waste Fund (A)","mgr":"Fidelity AM","vl":14.78,"ytd":1.86,"srri":6},
+    {"isin":"LU1653748860","name":"CPR Invest - Food For Generations (A)","mgr":"CPR AM","vl":121.33,"ytd":2.04,"srri":6},
+    {"isin":"FR0013367265","name":"R-co Valor Balanced (C)","mgr":"Rothschild et Cie Gestion","vl":146.47,"ytd":-2.42,"srri":5},
+    {"isin":"FR0012844140","name":"CPR Global Silver Age (E)","mgr":"CPR AM","vl":129.67,"ytd":-2.08,"srri":6},
+    {"isin":"LU1160365091","name":"EdR Fund - China (A)","mgr":"Edmond de Rothschild AM","vl":303.84,"ytd":-10.26,"srri":7},
+    {"isin":"LU0366534344","name":"Pictet - Nutrition (P)","mgr":"Pictet AM Europe","vl":206.20,"ytd":-2.49,"srri":6},
+    {"isin":"FR0000295230","name":"Comgest Renaissance Europe (C)","mgr":"Comgest AM","vl":230.29,"ytd":-4.87,"srri":6},
+    {"isin":"LU0217139020","name":"Pictet - Premium Brands (P)","mgr":"Pictet AM Europe","vl":281.75,"ytd":-2.99,"srri":5},
+    {"isin":"FR0010479931","name":"EdR India (A)","mgr":"Edmond de Rothschild AM","vl":467.30,"ytd":-12.27,"srri":7},
   ]},
   {"id":"flexibles","label":"Flexibles","color":"#6f42c1","funds":[
-    {"isin":"FR0010097683","name":"CPR Croissance Réactive (P)","mgr":"CPR AM","vl":578.59,"ytd":1.31,"srri":4},
-    {"isin":"LU2147879543","name":"Tikehau International Cross Assets (R)","mgr":"Tikehau IM","vl":758.70,"ytd":1.00,"srri":4},
-    {"isin":"FR0011175652","name":"Conservateur Reverso (C)","mgr":"Conservateur Gestion Valor","vl":77.06,"ytd":0.31,"srri":4},
-    {"isin":"FR0010286013","name":"Sextant Grand Large (A)","mgr":"Amiral Gestion","vl":488.53,"ytd":-1.47,"srri":4},
-    {"isin":"FR0011253624","name":"R-co Valor (C)","mgr":"Rothschild et Cie Gestion","vl":3935.69,"ytd":-1.99,"srri":5},
+    {"isin":"FR0010097683","name":"CPR Croissance Réactive (P)","mgr":"CPR AM","vl":577.70,"ytd":1.16,"srri":4},
+    {"isin":"LU2147879543","name":"Tikehau International Cross Assets (R)","mgr":"Tikehau IM","vl":757.12,"ytd":0.79,"srri":4},
+    {"isin":"FR0011175652","name":"Conservateur Reverso (C)","mgr":"Conservateur Gestion Valor","vl":77.25,"ytd":0.56,"srri":4},
+    {"isin":"FR0010286013","name":"Sextant Grand Large (A)","mgr":"Amiral Gestion","vl":488.90,"ytd":-1.39,"srri":4},
+    {"isin":"FR0011253624","name":"R-co Valor (C)","mgr":"Rothschild et Cie Gestion","vl":3817.19,"ytd":-4.94,"srri":5},
   ]},
 ]
 
@@ -771,9 +771,9 @@ class TinyChart {
     const xP=i=>PL+(n===1?cW/2:(i/(n-1))*cW);
     const yP=v=>PT+cH-((v-ymin)/yr)*cH;
     // y grid
-    ctx.strokeStyle='#f0f4f8'; ctx.lineWidth=1;
+    ctx.strokeStyle='#edf2f7'; ctx.lineWidth=1;
     ctx.fillStyle='#718096'; ctx.font='10px system-ui'; ctx.textAlign='right';
-    niceTicks(ymin,ymax,5).forEach(t=>{
+    niceTicks(ymin,ymax,8).forEach(t=>{
       const y=yP(t);
       if (y<PT||y>PT+cH) return;
       ctx.beginPath(); ctx.moveTo(PL,y); ctx.lineTo(PL+cW,y); ctx.stroke();
@@ -781,12 +781,18 @@ class TinyChart {
     });
     // zero dashed
     if (ymin<0&&ymax>0) {
-      ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1.5; ctx.setLineDash([3,3]);
       ctx.beginPath(); ctx.moveTo(PL,yP(0)); ctx.lineTo(PL+cW,yP(0)); ctx.stroke();
       ctx.setLineDash([]);
     }
+    // x vertical grid lines (légères)
+    ctx.strokeStyle='#edf2f7'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+    for(let i=0;i<n;i++){
+      ctx.beginPath(); ctx.moveTo(xP(i),PT); ctx.lineTo(xP(i),PT+cH); ctx.stroke();
+    }
+    ctx.setLineDash([]);
     // x labels
-    ctx.fillStyle='#4a5568'; ctx.font='11px system-ui'; ctx.textAlign='center';
+    ctx.fillStyle='#4a5568'; ctx.font='bold 11px system-ui'; ctx.textAlign='center';
     labels.forEach((l,i)=>ctx.fillText(l, xP(i), PT+cH+16));
     // x axis
     ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1;
@@ -813,14 +819,25 @@ class TinyChart {
       });
       ctx.stroke();
     });
-    // dots
+    // dots + valeurs sur chaque point
     ds.forEach(d=>{
       (d.data||[]).forEach((v,i)=>{
         if(v==null||isNaN(v)) return;
-        const r=i===hovXIdx?6:(d.pointRadius||4);
+        const isHov=i===hovXIdx;
+        const r=isHov?6:(d.pointRadius||4);
         ctx.beginPath(); ctx.arc(xP(i),yP(v),r,0,Math.PI*2);
         ctx.fillStyle='#fff'; ctx.fill();
         ctx.strokeStyle=d.borderColor||'#3266ad'; ctx.lineWidth=2; ctx.stroke();
+        // Valeur affichée sur le point (sauf si trop de courbes → lisibilité)
+        if (ds.length<=6 || isHov) {
+          const txt=(v>=0?'+':'')+v.toFixed(1)+'%';
+          ctx.font=isHov?'bold 10px system-ui':'9px system-ui';
+          ctx.fillStyle=d.borderColor||'#3266ad';
+          ctx.textAlign='center';
+          // Décaler vers le haut ou bas selon la position relative
+          const yOff = yP(v) < PT+cH*0.5 ? r+10 : -(r+3);
+          ctx.fillText(txt, xP(i), yP(v)+yOff);
+        }
       });
     });
     // tooltip
@@ -1107,7 +1124,7 @@ window.addEventListener('load', () => {{
 """)
 
 output = ''.join(html_parts)
-out_path = '/sessions/bold-happy-shannon/mnt/ANALYSE FONDS/Cours_Cotations_12052026.html'
+out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
 with open(out_path, 'w', encoding='utf-8') as f:
     f.write(output)
 print(f"✅ Written {len(output):,} chars → {out_path}")

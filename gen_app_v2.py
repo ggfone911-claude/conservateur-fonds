@@ -468,7 +468,7 @@ for i, cat in enumerate(CATEGORIES):
 
     html_parts.append(f'<div class="section {active}" id="sec_{cid}">\n')
     html_parts.append(f'<div class="cat-header"><h2>{cat["label"]}</h2><span class="badge">{len(cat["funds"])} fonds</span></div>\n')
-    html_parts.append('<div class="source-note">📅 Performances historiques issues de Boursorama — calcul fin de mois au 30/04/2026 · YTD (depuis le 1er janv.) issu de courscotations.conservateur.fr au 11/05/2026</div>\n')
+    html_parts.append('<div class="source-note">📅 Performances historiques issues de Boursorama — calcul fin de mois au 30/04/2026 · YTD (depuis le 1er janv.) issu de courscotations.conservateur.fr au 12/06/2026</div>\n')
 
     # Top 5 cards
     html_parts.append('<div class="top5">\n')
@@ -492,7 +492,7 @@ for i, cat in enumerate(CATEGORIES):
     # Chart 1 : barres (période sélectionnable)
     html_parts.append(f'''<div class="chart-wrap">
 <h3 id="bartitle_{cid}">Performance YTD</h3>
-<div class="chart-sub">YTD au 11/05/2026 · Historique Boursorama fin de mois 30/04/2026</div>
+<div class="chart-sub">YTD au 12/06/2026 · Historique Boursorama fin de mois 30/04/2026</div>
 <div class="period-btns">
   <button class="period-btn active" data-cat="{cid}" data-bperiod="YTD" onclick="filterBarPeriod('{cid}','YTD')">YTD</button>
   <button class="period-btn" data-cat="{cid}" data-bperiod="1M" onclick="filterBarPeriod('{cid}','1M')">1 Mois</button>
@@ -586,7 +586,7 @@ for i, cat in enumerate(CATEGORIES):
   <th onclick="sortTable('tbl_{cid}',2)">Gérant</th>
   <th onclick="sortTable('tbl_{cid}',3)" style="text-align:center">SRRI</th>
   <th onclick="sortTable('tbl_{cid}',4)" style="text-align:right">VL</th>
-  <th onclick="sortTable('tbl_{cid}',5)" style="text-align:right" title="YTD au 11/05/2026">YTD</th>
+  <th onclick="sortTable('tbl_{cid}',5)" style="text-align:right" title="YTD au 12/06/2026">YTD</th>
   <th onclick="sortTable('tbl_{cid}',6)" style="text-align:right" title="1 mois — fin de mois 30/04/2026">1 Mois</th>
   <th onclick="sortTable('tbl_{cid}',7)" style="text-align:right" title="6 mois — fin de mois 30/04/2026">6 Mois</th>
   <th onclick="sortTable('tbl_{cid}',8)" style="text-align:right" title="1 an — fin de mois 30/04/2026">1 An</th>
@@ -1041,7 +1041,7 @@ BAR_CHARTS.forEach(c => {{
   }});
 }});
 
-const BAR_PERIOD_TITLES = {{'YTD':'YTD (au 11/05/2026)','1M':'1 Mois','6M':'6 Mois','1A':'1 An','3A':'3 Ans','5A':'5 Ans'}};
+const BAR_PERIOD_TITLES = {{'YTD':'YTD (au 12/06/2026)','1M':'1 Mois','6M':'6 Mois','1A':'1 An','3A':'3 Ans','5A':'5 Ans'}};
 
 function filterBarPeriod(catId, period) {{
   document.querySelectorAll('.period-btn[data-cat="'+catId+'"][data-bperiod]').forEach(b => {{

@@ -2,58 +2,53 @@ name: Mise à jour quotidienne des VL Boursorama
 
 on:
   schedule:
-    - cron: '0 6 * * 1-5'
-    - cron: '0 7 * * 6'
-  workflow_dispatch:
+      - cron: '0 6 * * 1-5'
+          - cron: '0 7 * * 6'
+            workflow_dispatch:
 
-jobs:
-  update-vl:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+            jobs:
+              update-vl:
+                  runs-on: ubuntu-latest
+                      permissions:
+                            contents: write
 
-    steps:
-      - name: Checkout du repo
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+                                steps:
+                                      - name: Checkout du repo
+                                              uses: actions/checkout@v4
+                                                      with:
+                                                                token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+                                                                      - name: Setup Python
+                                                                              uses: actions/setup-python@v5
+                                                                                      with:
+                                                                                                python-version: '3.11'
 
-      - name: Scraping des VL sur Boursorama
-        run: python scraper.py
-        continue-on-error: true
-
-      - name: Vérification du fichier généré
-        run: |
-          if [ -f vl_overrides.json ]; then
-            echo "✅ vl_overrides.json généré"
-            python -c "import json; d=json.load(open('vl_overrides.json')); print(f'{len(d)} fonds scrapés')"
-          else
-            echo "⚠️ vl_overrides.json absent"
-          fi
-
-      - name: Correction du chemin de sortie
-        run: |
-          sed -i "s|out_path = '[^']*'|out_path = 'index.html'|g" gen_app_v2.py
-          echo "✅ out_path corrigé"
-
-      - name: Régénération de index.html
-        run: python gen_app_v2.py
-
-      - name: Commit et push si changements
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
-          git add index.html vl_overrides.json 2>/dev/null || true
-          if git diff --staged --quiet; then
-            echo "Aucun changement détecté"
-          else
-            DATE=$(date '+%d/%m/%Y %H:%M')
-            git commit -m "📈 Mise à jour VL Boursorama — ${DATE}"
-            git push
-          fi
+                                                                                                      - name: Scraping des VL sur Boursorama
+                                                                                                              run: python scraper.py
+                                                                                                                      continue-on-error: true
+                                                                                                                      
+                                                                                                                            - name: Vérification du fichier généré
+                                                                                                                                    run: |
+                                                                                                                                              if [ -f vl_overrides.json ]; then
+                                                                                                                                                          echo "✅ vl_overrides.json généré"
+                                                                                                                                                                      python -c "import json; d=json.load(open('vl_overrides.json')); print(f'{len(d)} fonds scrapés')"
+                                                                                                                                                                                else
+                                                                                                                                                                                            echo "⚠️ vl_overrides.json absent — données hardcodées utilisées"
+                                                                                                                                                                                                      fi
+                                                                                                                                                                                                      
+                                                                                                                                                                                                            - name: Régénération de index.html
+                                                                                                                                                                                                                    run: python gen_app_v2.py
+                                                                                                                                                                                                                    
+                                                                                                                                                                                                                          - name: Commit et push si changements
+                                                                                                                                                                                                                                  run: |
+                                                                                                                                                                                                                                            git config user.name  "github-actions[bot]"
+                                                                                                                                                                                                                                                      git config user.email "github-actions[bot]@users.noreply.github.com"
+                                                                                                                                                                                                                                                                git add -A
+                                                                                                                                                                                                                                                                          if git diff --staged --quiet; then
+                                                                                                                                                                                                                                                                                      echo "Aucun changement détecté — pas de commit"
+                                                                                                                                                                                                                                                                                                else
+                                                                                                                                                                                                                                                                                                            DATE=$(date '+%d/%m/%Y %H:%M')
+                                                                                                                                                                                                                                                                                                                        git commit -m "📈 Mise à jour VL Boursorama — ${DATE}"
+                                                                                                                                                                                                                                                                                                                                    git push
+                                                                                                                                                                                                                                                                                                                                                echo "✅ Déployé sur GitHub Pages"
+                                                                                                                                                                                                                                                                                                                                                          fi

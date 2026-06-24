@@ -460,8 +460,10 @@ tr.top3 td:first-child{font-weight:700}
 .fe-ctrl-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .fe-ctrl-group{display:flex;align-items:center;gap:8px}
 .fe-label{font-size:13px;font-weight:500;color:#78350f;white-space:nowrap}
-.fe-taux-input{width:62px;padding:4px 6px;border:1px solid #f59e0b;border-radius:6px;font-size:14px;font-weight:600;text-align:center;background:#fff;color:#1a202c}
-.fe-pct-sign{font-size:13px;font-weight:600;color:#78350f}
+.fe-taux-display{font-size:18px;font-weight:700;color:#92400e;min-width:58px}
+.fe-enc-btn{padding:4px 10px;border-radius:6px;border:1px solid #f59e0b;background:#fff;font-size:12px;font-weight:500;color:#78350f;cursor:pointer;transition:background .15s}
+.fe-enc-btn.active{background:#f59e0b;color:#fff;border-color:#f59e0b}
+.fe-tranche-hint{font-size:11px;color:#a0aec0;font-style:italic}
 .fe-slider{-webkit-appearance:none;appearance:none;width:150px;height:4px;border-radius:2px;outline:none;cursor:pointer;background:#fde68a}
 .fe-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#f59e0b;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .fe-range-hint{font-size:11px;color:#a0aec0}
@@ -902,17 +904,20 @@ html_parts.append('''<div class="fe-controls">
     <span style="font-size:20px">🏦</span>
     <span class="fe-label" style="font-size:14px;font-weight:700">Fonds en Euros</span>
     <div class="fe-ctrl-group">
-      <span class="fe-label">Taux annuel&nbsp;:</span>
-      <div class="fe-input-wrap">
-        <input class="fe-taux-input" id="feTaux" type="number" min="0" max="10" step="0.01" value="2.80" oninput="updateFE()">
-        <span class="fe-pct-sign">%</span>
-      </div>
+      <span class="fe-label">Encours&nbsp;:</span>
+      <button class="fe-enc-btn active" id="feEncLow"  onclick="setEncours(false)">Moins de 150 k€</button>
+      <button class="fe-enc-btn"        id="feEncHigh" onclick="setEncours(true)">150 k€ et plus</button>
     </div>
     <div class="fe-ctrl-group">
-      <span class="fe-label">Allocation&nbsp;:</span>
+      <span class="fe-label">Allocation FE&nbsp;:</span>
       <input class="fe-slider" id="feSlider" type="range" min="20" max="49" value="30" oninput="updateFE()">
       <span class="fe-label"><span id="feAllocVal">30</span>&nbsp;%</span>
       <span class="fe-range-hint">(20–49 %)</span>
+    </div>
+    <div class="fe-ctrl-group">
+      <span class="fe-label">Taux 2025&nbsp;:</span>
+      <span class="fe-taux-display" id="feTauxDisplay">4,00&nbsp;%</span>
+      <span class="fe-tranche-hint" id="feTranche">UC ≥ 70 %</span>
     </div>
   </div>
 </div>\n''')
@@ -1561,16 +1566,58 @@ window.addEventListener('load', () => {{
 // ── Fonds en Euros — recalcul dynamique ───────────────────────────────────
 const _PTF_DATA = {_PTF_DATA_JS};
 
-function updateFE() {{
-  const taux    = parseFloat(document.getElementById('feTaux')?.value)  || 2.80;
-  const feAlloc = parseInt(document.getElementById('feSlider')?.value)  || 30;
-  const dispEl  = document.getElementById('feAllocVal');
-  if (dispEl) dispEl.textContent = feAlloc;
+// Table taux Le Conservateur 2025 (source : communiqué presse 22/01/2026)
+// Clé = UC% minimum, valeur = [taux_encours_bas, taux_encours_haut]
+const _FE_RATES = [
+  {{ ucMin: 70, rates: [4.00, 4.25] }},
+  {{ ucMin: 60, rates: [3.75, 4.00] }},
+  {{ ucMin: 50, rates: [3.25, 3.50] }},
+  {{ ucMin: 40, rates: [2.00, 2.25] }},
+  {{ ucMin:  0, rates: [1.10, 1.10] }},
+];
+const _FE_TRANCHE_LABELS = [
+  {{ ucMin: 70, label: 'UC ≥ 70 %' }},
+  {{ ucMin: 60, label: '60 % ≤ UC < 70 %' }},
+  {{ ucMin: 50, label: '50 % ≤ UC < 60 %' }},
+  {{ ucMin: 40, label: '40 % ≤ UC < 50 %' }},
+  {{ ucMin:  0, label: 'UC < 40 %' }},
+];
 
-  const ucScale = (100 - feAlloc) / 100;
+let _feHighEncours = false;
+
+function setEncours(high) {{
+  _feHighEncours = high;
+  document.getElementById('feEncLow') ?.classList.toggle('active', !high);
+  document.getElementById('feEncHigh')?.classList.toggle('active',  high);
+  updateFE();
+}}
+
+function _getFERate(ucPct) {{
+  const row = _FE_RATES.find(r => ucPct >= r.ucMin) || _FE_RATES[_FE_RATES.length - 1];
+  return row.rates[_feHighEncours ? 1 : 0];
+}}
+function _getFETranche(ucPct) {{
+  const row = _FE_TRANCHE_LABELS.find(r => ucPct >= r.ucMin) || _FE_TRANCHE_LABELS[_FE_TRANCHE_LABELS.length - 1];
+  return row.label;
+}}
+
+function updateFE() {{
+  const feAlloc = parseInt(document.getElementById('feSlider')?.value) || 30;
+  const ucPct   = 100 - feAlloc;
+  const taux    = _getFERate(ucPct);
+
+  // Mettre à jour l'affichage des contrôles
+  const dispEl = document.getElementById('feAllocVal');
+  if (dispEl) dispEl.textContent = feAlloc;
+  const tauxEl = document.getElementById('feTauxDisplay');
+  if (tauxEl) tauxEl.textContent = taux.toFixed(2).replace('.', ',') + ' %';
+  const trancheEl = document.getElementById('feTranche');
+  if (trancheEl) trancheEl.textContent = _getFETranche(ucPct);
+
+  const ucScale = ucPct / 100;
   const t       = taux / 100;
 
-  // YTD fraction (days since Jan 1 / 365)
+  // YTD fraction (jours depuis 1er jan / 365)
   const now   = new Date();
   const jan1  = new Date(now.getFullYear(), 0, 1);
   const ytdFr = (now - jan1) / (1000 * 60 * 60 * 24 * 365);
@@ -1592,31 +1639,31 @@ function updateFE() {{
       + (v >= 0 ? '+' : '') + v.toFixed(1).replace('.', ',') + '&nbsp;%</span>';
 
   Object.entries(_PTF_DATA).forEach(([pid, pd]) => {{
-    // FE row perf cells
+    // FE row — cellules perf
     ['ytd', 'a1', 'a3', 'a5'].forEach(k => {{
       const el = document.getElementById('fe-' + k + '-' + pid);
       if (el) el.innerHTML = fmtFE(fePerfs[k]);
     }});
 
-    // FE allocation bar (scale 1px = ~2.04% so 30% ≈ 90px, max 49% ≈ 100px)
+    // FE allocation bar
     const feBarW = Math.round(feAlloc * 2.04);
     const feAllocEl = document.getElementById('fe-alloc-' + pid);
     if (feAllocEl) feAllocEl.innerHTML =
       '<div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:' + feBarW + 'px"></div>'
       + '<span style="font-size:12px;font-weight:600;min-width:28px">' + feAlloc + '&nbsp;%</span></div>';
 
-    // UC fund allocation bars (rescaled to 100 - feAlloc %)
+    // UC fund allocation bars (repondérées à ucPct %)
     pd.funds.forEach((f, i) => {{
-      const rank    = i + 1;
-      const newPct  = Math.round(f.pct * ucScale * 10) / 10;
-      const barW    = Math.round(newPct * 3);
+      const rank   = i + 1;
+      const newPct = Math.round(f.pct * ucScale * 10) / 10;
+      const barW   = Math.round(newPct * 3);
       const allocEl = document.getElementById('alloc-' + pd.cc + '-' + rank);
       if (allocEl) allocEl.innerHTML =
         '<div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-' + pd.cc + '" style="width:' + barW + 'px"></div>'
         + '<span style="font-size:12px;font-weight:600;min-width:28px">' + newPct.toFixed(1) + '&nbsp;%</span></div>';
     }});
 
-    // Blended KPI: FE share + UC weighted average
+    // KPI blended : FE + UC pondérés
     let sumW_a1 = 0, sumW_a3 = 0, totW = 0, totW3 = 0;
     pd.funds.forEach(f => {{
       if (f.a1 != null) {{ sumW_a1 += f.pct * f.a1; totW  += f.pct; }}

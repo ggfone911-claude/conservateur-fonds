@@ -455,6 +455,18 @@ tr.top3 td:first-child{font-weight:700}
 .ptf-bar-pru{background:#1a3a6b}
 .ptf-bar-equ{background:#1D9E75}
 .ptf-bar-dyn{background:#993C1D}
+.ptf-bar-fe{background:#f59e0b}
+.fe-controls{background:#fffdf0;border:1px solid #fde68a;border-radius:10px;padding:12px 18px;margin-bottom:16px}
+.fe-ctrl-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.fe-ctrl-group{display:flex;align-items:center;gap:8px}
+.fe-label{font-size:13px;font-weight:500;color:#78350f;white-space:nowrap}
+.fe-taux-input{width:62px;padding:4px 6px;border:1px solid #f59e0b;border-radius:6px;font-size:14px;font-weight:600;text-align:center;background:#fff;color:#1a202c}
+.fe-pct-sign{font-size:13px;font-weight:600;color:#78350f}
+.fe-slider{-webkit-appearance:none;appearance:none;width:150px;height:4px;border-radius:2px;outline:none;cursor:pointer;background:#fde68a}
+.fe-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#f59e0b;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.fe-range-hint{font-size:11px;color:#a0aec0}
+.fe-row>td{background:#fffdf0!important}
+.fe-row .fund-name{font-weight:600;color:#78350f}
 </style>
 </head>
 <body>
@@ -851,9 +863,59 @@ def _ptf_perf(v):
         return f'<span class="pos">{v}</span>'
     return f'<span class="neg">{v}</span>'
 
+def _parse_pct(s):
+    """'+2,06%' → 2.06  |  '—' → None  |  '−4,94%' → -4.94"""
+    if not s or s == "—":
+        return None
+    try:
+        return float(s.strip()
+                      .replace("+", "")
+                      .replace("−", "-")   # unicode minus
+                      .replace("−", "-")
+                      .replace(",", ".")
+                      .replace("%", ""))
+    except Exception:
+        return None
+
+# Build PTF JS dataset (parsed floats for blended-perf calculations)
+_ptf_js_dict = {}
+for _ptf in _PORTFOLIOS_DATA:
+    _funds_arr = []
+    for _rank, _name, _srri, _ytd_s, _a1_s, _a3_s, _a5_s, _pct in _ptf["funds"]:
+        _funds_arr.append({
+            "pct": _pct,
+            "ytd": _parse_pct(_ytd_s),
+            "a1":  _parse_pct(_a1_s),
+            "a3":  _parse_pct(_a3_s),
+            "a5":  _parse_pct(_a5_s),
+        })
+    _ptf_js_dict[_ptf["id"]] = {"cc": _ptf["color_cls"], "funds": _funds_arr}
+_PTF_DATA_JS = json.dumps(_ptf_js_dict, ensure_ascii=False)
+
 html_parts.append('<div class="section" id="sec_portefeuilles">\n')
 html_parts.append('<div class="cat-header"><h2>💼 Portefeuilles Optimisés</h2><span class="badge">3 profils de risque</span></div>\n')
 html_parts.append(f'<div class="source-note">📅 Construit sur la base des performances Boursorama au {_fmt_date_short(_HIST_LAST_UPDATED)} — Sélection et pondération optimisée des 10 meilleurs fonds par profil SRRI</div>\n')
+
+# ── Fonds en Euros controls ────────────────────────────────────────────────
+html_parts.append('''<div class="fe-controls">
+  <div class="fe-ctrl-row">
+    <span style="font-size:20px">🏦</span>
+    <span class="fe-label" style="font-size:14px;font-weight:700">Fonds en Euros</span>
+    <div class="fe-ctrl-group">
+      <span class="fe-label">Taux annuel&nbsp;:</span>
+      <div class="fe-input-wrap">
+        <input class="fe-taux-input" id="feTaux" type="number" min="0" max="10" step="0.01" value="2.80" oninput="updateFE()">
+        <span class="fe-pct-sign">%</span>
+      </div>
+    </div>
+    <div class="fe-ctrl-group">
+      <span class="fe-label">Allocation&nbsp;:</span>
+      <input class="fe-slider" id="feSlider" type="range" min="20" max="49" value="30" oninput="updateFE()">
+      <span class="fe-label"><span id="feAllocVal">30</span>&nbsp;%</span>
+      <span class="fe-range-hint">(20–49 %)</span>
+    </div>
+  </div>
+</div>\n''')
 
 # Inner portfolio tabs
 html_parts.append('<div class="ptf-tabs">\n')
@@ -871,8 +933,9 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
     html_parts.append(f'  <div class="ptf-title ptf-t-{cc}">{ptf["emoji"]} Portefeuille {ptf["label"]}</div>\n')
     html_parts.append(f'  <div class="ptf-sub ptf-s-{cc}">{ptf["desc"]}</div>\n')
     html_parts.append('  <div class="ptf-kpis">\n')
-    for lbl, val, cls in ptf["kpis"]:
-        html_parts.append(f'    <div class="ptf-kpi"><div class="ptf-kpi-lbl">{lbl}</div><div class="ptf-kpi-val {cls}">{val}</div></div>\n')
+    for ki, (lbl, val, cls) in enumerate(ptf["kpis"]):
+        kid_attr = f' id="kpi-a{"1" if ki==0 else "3"}-{ptf["id"]}"' if ki < 2 else ''
+        html_parts.append(f'    <div class="ptf-kpi"><div class="ptf-kpi-lbl">{lbl}</div><div class="ptf-kpi-val {cls}"{kid_attr}>{val}</div></div>\n')
     html_parts.append('  </div>\n</div>\n')
 
     html_parts.append('<div class="table-wrap" style="border-radius:0 0 10px 10px;margin-top:0">\n')
@@ -886,10 +949,25 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
     html_parts.append('  <th style="width:110px">Allocation</th>\n')
     html_parts.append('</tr></thead>\n<tbody>\n')
 
+    # ── Fonds en Euros row (first, dynamic) ───────────────────────────────────
+    html_parts.append(f'''<tr class="fe-row">
+  <td style="font-size:13px;text-align:center">★</td>
+  <td class="fund-name">🏦 Fonds en Euros</td>
+  <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
+  <td style="text-align:right" id="fe-ytd-{ptf["id"]}">—</td>
+  <td style="text-align:right" id="fe-a1-{ptf["id"]}">—</td>
+  <td style="text-align:right" id="fe-a3-{ptf["id"]}">—</td>
+  <td style="text-align:right" id="fe-a5-{ptf["id"]}">—</td>
+  <td id="fe-alloc-{ptf["id"]}"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:84px"></div><span style="font-size:12px;font-weight:600;min-width:28px">30 %</span></div></td>
+</tr>\n''')
+
     for rank, name, srri, ytd, a1, a3, a5, pct in ptf["funds"]:
         sc = _SRRI_COLORS_PTF.get(srri, "#94a3b8")
         bar_w = pct * 3
-        html_parts.append(f'''<tr>
+        _ytd_f = _parse_pct(ytd); _a1_f = _parse_pct(a1)
+        _a3_f  = _parse_pct(a3);  _a5_f = _parse_pct(a5)
+        def _dv(v): return str(v) if v is not None else "null"
+        html_parts.append(f'''<tr class="uc-row" data-pct="{pct}" data-ytd="{_dv(_ytd_f)}" data-a1="{_dv(_a1_f)}" data-a3="{_dv(_a3_f)}" data-a5="{_dv(_a5_f)}">
   <td style="font-size:11px;color:#a0aec0">{rank}</td>
   <td class="fund-name">{name}</td>
   <td style="text-align:center"><span class="srri-badge" style="background:{sc}">{srri}</span></td>
@@ -897,7 +975,7 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
   <td style="text-align:right">{_ptf_perf(a1)}</td>
   <td style="text-align:right">{_ptf_perf(a3)}</td>
   <td style="text-align:right">{_ptf_perf(a5)}</td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-{cc}" style="width:{bar_w}px"></div><span style="font-size:12px;font-weight:600;min-width:28px">{pct} %</span></div></td>
+  <td id="alloc-{cc}-{rank}"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-{cc}" style="width:{bar_w}px"></div><span style="font-size:12px;font-weight:600;min-width:28px">{pct} %</span></div></td>
 </tr>\n''')
 
     html_parts.append('</tbody></table></div>\n')
@@ -1477,7 +1555,84 @@ window.addEventListener('load', () => {{
   const firstId = '{CATEGORIES[0]["id"]}';
   if (barInstances[firstId])  barInstances[firstId]._resize();
   if (lineInstances[firstId]) lineInstances[firstId]._resize();
+  updateFE();
 }});
+
+// ── Fonds en Euros — recalcul dynamique ───────────────────────────────────
+const _PTF_DATA = {_PTF_DATA_JS};
+
+function updateFE() {{
+  const taux    = parseFloat(document.getElementById('feTaux')?.value)  || 2.80;
+  const feAlloc = parseInt(document.getElementById('feSlider')?.value)  || 30;
+  const dispEl  = document.getElementById('feAllocVal');
+  if (dispEl) dispEl.textContent = feAlloc;
+
+  const ucScale = (100 - feAlloc) / 100;
+  const t       = taux / 100;
+
+  // YTD fraction (days since Jan 1 / 365)
+  const now   = new Date();
+  const jan1  = new Date(now.getFullYear(), 0, 1);
+  const ytdFr = (now - jan1) / (1000 * 60 * 60 * 24 * 365);
+
+  const fePerfs = {{
+    ytd: taux * ytdFr,
+    a1:  taux,
+    a3:  (Math.pow(1 + t, 3) - 1) * 100,
+    a5:  (Math.pow(1 + t, 5) - 1) * 100
+  }};
+
+  const fmtFE = v =>
+    v == null ? '<span class="na">—</span>' :
+    '<span class="' + (v >= 0 ? 'pos' : 'neg') + '">'
+      + (v >= 0 ? '+' : '') + v.toFixed(2).replace('.', ',') + '&nbsp;%</span>';
+
+  const fmtKpi = v =>
+    '<span class="' + (v >= 0 ? 'pos' : 'neg') + '">'
+      + (v >= 0 ? '+' : '') + v.toFixed(1).replace('.', ',') + '&nbsp;%</span>';
+
+  Object.entries(_PTF_DATA).forEach(([pid, pd]) => {{
+    // FE row perf cells
+    ['ytd', 'a1', 'a3', 'a5'].forEach(k => {{
+      const el = document.getElementById('fe-' + k + '-' + pid);
+      if (el) el.innerHTML = fmtFE(fePerfs[k]);
+    }});
+
+    // FE allocation bar (scale 1px = ~2.04% so 30% ≈ 90px, max 49% ≈ 100px)
+    const feBarW = Math.round(feAlloc * 2.04);
+    const feAllocEl = document.getElementById('fe-alloc-' + pid);
+    if (feAllocEl) feAllocEl.innerHTML =
+      '<div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:' + feBarW + 'px"></div>'
+      + '<span style="font-size:12px;font-weight:600;min-width:28px">' + feAlloc + '&nbsp;%</span></div>';
+
+    // UC fund allocation bars (rescaled to 100 - feAlloc %)
+    pd.funds.forEach((f, i) => {{
+      const rank    = i + 1;
+      const newPct  = Math.round(f.pct * ucScale * 10) / 10;
+      const barW    = Math.round(newPct * 3);
+      const allocEl = document.getElementById('alloc-' + pd.cc + '-' + rank);
+      if (allocEl) allocEl.innerHTML =
+        '<div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-' + pd.cc + '" style="width:' + barW + 'px"></div>'
+        + '<span style="font-size:12px;font-weight:600;min-width:28px">' + newPct.toFixed(1) + '&nbsp;%</span></div>';
+    }});
+
+    // Blended KPI: FE share + UC weighted average
+    let sumW_a1 = 0, sumW_a3 = 0, totW = 0, totW3 = 0;
+    pd.funds.forEach(f => {{
+      if (f.a1 != null) {{ sumW_a1 += f.pct * f.a1; totW  += f.pct; }}
+      if (f.a3 != null) {{ sumW_a3 += f.pct * f.a3; totW3 += f.pct; }}
+    }});
+    if (totW  === 0) totW  = 100;
+    if (totW3 === 0) totW3 = 100;
+    const blend_a1 = feAlloc / 100 * fePerfs.a1 + ucScale * (sumW_a1 / totW);
+    const blend_a3 = feAlloc / 100 * fePerfs.a3 + ucScale * (sumW_a3 / totW3);
+
+    const k1 = document.getElementById('kpi-a1-' + pid);
+    const k3 = document.getElementById('kpi-a3-' + pid);
+    if (k1) k1.innerHTML = fmtKpi(blend_a1);
+    if (k3) k3.innerHTML = fmtKpi(blend_a3);
+  }});
+}}
 </script>
 </body>
 </html>

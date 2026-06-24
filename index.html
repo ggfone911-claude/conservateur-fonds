@@ -107,6 +107,18 @@ tr.top3 td:first-child{font-weight:700}
 .ptf-bar-pru{background:#1a3a6b}
 .ptf-bar-equ{background:#1D9E75}
 .ptf-bar-dyn{background:#993C1D}
+.ptf-bar-fe{background:#f59e0b}
+.fe-controls{background:#fffdf0;border:1px solid #fde68a;border-radius:10px;padding:12px 18px;margin-bottom:16px}
+.fe-ctrl-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.fe-ctrl-group{display:flex;align-items:center;gap:8px}
+.fe-label{font-size:13px;font-weight:500;color:#78350f;white-space:nowrap}
+.fe-taux-input{width:62px;padding:4px 6px;border:1px solid #f59e0b;border-radius:6px;font-size:14px;font-weight:600;text-align:center;background:#fff;color:#1a202c}
+.fe-pct-sign{font-size:13px;font-weight:600;color:#78350f}
+.fe-slider{-webkit-appearance:none;appearance:none;width:150px;height:4px;border-radius:2px;outline:none;cursor:pointer;background:#fde68a}
+.fe-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#f59e0b;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.fe-range-hint{font-size:11px;color:#a0aec0}
+.fe-row>td{background:#fffdf0!important}
+.fe-row .fund-name{font-weight:600;color:#78350f}
 </style>
 </head>
 <body>
@@ -1910,6 +1922,25 @@ tr.top3 td:first-child{font-weight:700}
 <div class="section" id="sec_portefeuilles">
 <div class="cat-header"><h2>💼 Portefeuilles Optimisés</h2><span class="badge">3 profils de risque</span></div>
 <div class="source-note">📅 Construit sur la base des performances Boursorama au 24/06/2026 — Sélection et pondération optimisée des 10 meilleurs fonds par profil SRRI</div>
+<div class="fe-controls">
+  <div class="fe-ctrl-row">
+    <span style="font-size:20px">🏦</span>
+    <span class="fe-label" style="font-size:14px;font-weight:700">Fonds en Euros</span>
+    <div class="fe-ctrl-group">
+      <span class="fe-label">Taux annuel&nbsp;:</span>
+      <div class="fe-input-wrap">
+        <input class="fe-taux-input" id="feTaux" type="number" min="0" max="10" step="0.01" value="2.80" oninput="updateFE()">
+        <span class="fe-pct-sign">%</span>
+      </div>
+    </div>
+    <div class="fe-ctrl-group">
+      <span class="fe-label">Allocation&nbsp;:</span>
+      <input class="fe-slider" id="feSlider" type="range" min="20" max="49" value="30" oninput="updateFE()">
+      <span class="fe-label"><span id="feAllocVal">30</span>&nbsp;%</span>
+      <span class="fe-range-hint">(20–49 %)</span>
+    </div>
+  </div>
+</div>
 <div class="ptf-tabs">
   <div class="ptf-tab active t-pru" onclick="ptfShow('pru')">🔵 Prudent · SRRI 1–3</div>
   <div class="ptf-tab  t-equ" onclick="ptfShow('equ')">🟢 Équilibré · SRRI 1–5</div>
@@ -1920,8 +1951,8 @@ tr.top3 td:first-child{font-weight:700}
   <div class="ptf-title ptf-t-pru">🔵 Portefeuille Prudent</div>
   <div class="ptf-sub ptf-s-pru">Horizon 3–5 ans · Préservation du capital · Rendement cible ~2–3%/an</div>
   <div class="ptf-kpis">
-    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 1 An</div><div class="ptf-kpi-val pos">+2,6 %</div></div>
-    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 3 Ans</div><div class="ptf-kpi-val pos">+13,5 %</div></div>
+    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 1 An</div><div class="ptf-kpi-val pos" id="kpi-a1-pru">+2,6 %</div></div>
+    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 3 Ans</div><div class="ptf-kpi-val pos" id="kpi-a3-pru">+13,5 %</div></div>
     <div class="ptf-kpi"><div class="ptf-kpi-lbl">SRRI moyen pond.</div><div class="ptf-kpi-val ">2,0</div></div>
     <div class="ptf-kpi"><div class="ptf-kpi-lbl">Fonds sélectionnés</div><div class="ptf-kpi-val ">10</div></div>
   </div>
@@ -1939,7 +1970,17 @@ tr.top3 td:first-child{font-weight:700}
   <th style="width:110px">Allocation</th>
 </tr></thead>
 <tbody>
-<tr>
+<tr class="fe-row">
+  <td style="font-size:13px;text-align:center">★</td>
+  <td class="fund-name">🏦 Fonds en Euros</td>
+  <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
+  <td style="text-align:right" id="fe-ytd-pru">—</td>
+  <td style="text-align:right" id="fe-a1-pru">—</td>
+  <td style="text-align:right" id="fe-a3-pru">—</td>
+  <td style="text-align:right" id="fe-a5-pru">—</td>
+  <td id="fe-alloc-pru"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:84px"></div><span style="font-size:12px;font-weight:600;min-width:28px">30 %</span></div></td>
+</tr>
+<tr class="uc-row" data-pct="10" data-ytd="0.53" data-a1="2.06" data-a3="12.05" data-a5="9.42">
   <td style="font-size:11px;color:#a0aec0">1</td>
   <td class="fund-name">TF – Tikehau Short Duration (R)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
@@ -1947,9 +1988,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+2,06%</span></td>
   <td style="text-align:right"><span class="pos">+12,05%</span></td>
   <td style="text-align:right"><span class="pos">+9,42%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-pru-1"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="0.88" data-a1="1.96" data-a3="9.37" data-a5="10.38">
   <td style="font-size:11px;color:#a0aec0">2</td>
   <td class="fund-name">Palatine Monétaire Court Terme (R)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
@@ -1957,9 +1998,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+1,96%</span></td>
   <td style="text-align:right"><span class="pos">+9,37%</span></td>
   <td style="text-align:right"><span class="pos">+10,38%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-pru-2"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="5" data-ytd="0.66" data-a1="1.99" data-a3="10.47" data-a5="7.49">
   <td style="font-size:11px;color:#a0aec0">3</td>
   <td class="fund-name">Conservateur Oblig. CT (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
@@ -1967,9 +2008,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+1,99%</span></td>
   <td style="text-align:right"><span class="pos">+10,47%</span></td>
   <td style="text-align:right"><span class="pos">+7,49%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
+  <td id="alloc-pru-3"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="20" data-ytd="1.01" data-a1="3.61" data-a3="null" data-a5="null">
   <td style="font-size:11px;color:#a0aec0">4</td>
   <td class="fund-name">Conservateur Horizon 2031 (I)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#84cc16">2</span></td>
@@ -1977,9 +2018,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+3,61%</span></td>
   <td style="text-align:right"><span class="na">—</span></td>
   <td style="text-align:right"><span class="na">—</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:60px"></div><span style="font-size:12px;font-weight:600;min-width:28px">20 %</span></div></td>
+  <td id="alloc-pru-4"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:60px"></div><span style="font-size:12px;font-weight:600;min-width:28px">20 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="15" data-ytd="0.93" data-a1="2.27" data-a3="16.45" data-a5="9.94">
   <td style="font-size:11px;color:#a0aec0">5</td>
   <td class="fund-name">Conservateur Horizon 2027 (I)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#84cc16">2</span></td>
@@ -1987,9 +2028,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+2,27%</span></td>
   <td style="text-align:right"><span class="pos">+16,45%</span></td>
   <td style="text-align:right"><span class="pos">+9,94%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
+  <td id="alloc-pru-5"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="0.77" data-a1="2.37" data-a3="13.38" data-a5="11.31">
   <td style="font-size:11px;color:#a0aec0">6</td>
   <td class="fund-name">Oddo BHF Global Target 2026 (CR)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#84cc16">2</span></td>
@@ -1997,9 +2038,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+2,37%</span></td>
   <td style="text-align:right"><span class="pos">+13,38%</span></td>
   <td style="text-align:right"><span class="pos">+11,31%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-pru-6"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="15" data-ytd="2.07" data-a1="4.8" data-a3="18.36" data-a5="21.76">
   <td style="font-size:11px;color:#a0aec0">7</td>
   <td class="fund-name">DNCA Eurose (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
@@ -2007,9 +2048,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+4,80%</span></td>
   <td style="text-align:right"><span class="pos">+18,36%</span></td>
   <td style="text-align:right"><span class="pos">+21,76%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
+  <td id="alloc-pru-7"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="1.59" data-a1="2.95" data-a3="3.55" data-a5="12.54">
   <td style="font-size:11px;color:#a0aec0">8</td>
   <td class="fund-name">DNCA Invest Flex Inflation</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
@@ -2017,9 +2058,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+2,95%</span></td>
   <td style="text-align:right"><span class="pos">+3,55%</span></td>
   <td style="text-align:right"><span class="pos">+12,54%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-pru-8"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="3" data-ytd="0.28" data-a1="1.39" data-a3="12.18" data-a5="4.44">
   <td style="font-size:11px;color:#a0aec0">9</td>
   <td class="fund-name">Conservateur Oblig. MT (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
@@ -2027,9 +2068,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+1,39%</span></td>
   <td style="text-align:right"><span class="pos">+12,18%</span></td>
   <td style="text-align:right"><span class="pos">+4,44%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:9px"></div><span style="font-size:12px;font-weight:600;min-width:28px">3 %</span></div></td>
+  <td id="alloc-pru-9"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:9px"></div><span style="font-size:12px;font-weight:600;min-width:28px">3 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="2" data-ytd="-0.39" data-a1="1.39" data-a3="12.2" data-a5="5.15">
   <td style="font-size:11px;color:#a0aec0">10</td>
   <td class="fund-name">Oddo Sustainable Credit Options (CR)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
@@ -2037,7 +2078,7 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+1,39%</span></td>
   <td style="text-align:right"><span class="pos">+12,20%</span></td>
   <td style="text-align:right"><span class="pos">+5,15%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:6px"></div><span style="font-size:12px;font-weight:600;min-width:28px">2 %</span></div></td>
+  <td id="alloc-pru-10"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:6px"></div><span style="font-size:12px;font-weight:600;min-width:28px">2 %</span></div></td>
 </tr>
 </tbody></table></div>
 <p style="font-size:11px;color:#a0aec0;margin-top:8px;padding:0 4px">25% SRRI1 (monétaire) · 45% SRRI2 (oblig. horizon) · 30% SRRI3 (diversifié prudent). Performances passées cumulées, non garanties.</p>
@@ -2047,8 +2088,8 @@ tr.top3 td:first-child{font-weight:700}
   <div class="ptf-title ptf-t-equ">🟢 Portefeuille Équilibré</div>
   <div class="ptf-sub ptf-s-equ">Horizon 5–7 ans · Croissance modérée · Rendement cible ~7–9%/an</div>
   <div class="ptf-kpis">
-    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 1 An</div><div class="ptf-kpi-val pos">+8,7 %</div></div>
-    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 3 Ans</div><div class="ptf-kpi-val pos">+25,8 %</div></div>
+    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 1 An</div><div class="ptf-kpi-val pos" id="kpi-a1-equ">+8,7 %</div></div>
+    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 3 Ans</div><div class="ptf-kpi-val pos" id="kpi-a3-equ">+25,8 %</div></div>
     <div class="ptf-kpi"><div class="ptf-kpi-lbl">SRRI moyen pond.</div><div class="ptf-kpi-val ">4,1</div></div>
     <div class="ptf-kpi"><div class="ptf-kpi-lbl">Fonds sélectionnés</div><div class="ptf-kpi-val ">10</div></div>
   </div>
@@ -2066,7 +2107,17 @@ tr.top3 td:first-child{font-weight:700}
   <th style="width:110px">Allocation</th>
 </tr></thead>
 <tbody>
-<tr>
+<tr class="fe-row">
+  <td style="font-size:13px;text-align:center">★</td>
+  <td class="fund-name">🏦 Fonds en Euros</td>
+  <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
+  <td style="text-align:right" id="fe-ytd-equ">—</td>
+  <td style="text-align:right" id="fe-a1-equ">—</td>
+  <td style="text-align:right" id="fe-a3-equ">—</td>
+  <td style="text-align:right" id="fe-a5-equ">—</td>
+  <td id="fe-alloc-equ"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:84px"></div><span style="font-size:12px;font-weight:600;min-width:28px">30 %</span></div></td>
+</tr>
+<tr class="uc-row" data-pct="5" data-ytd="1.01" data-a1="3.61" data-a3="null" data-a5="null">
   <td style="font-size:11px;color:#a0aec0">1</td>
   <td class="fund-name">Conservateur Horizon 2031 (I)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#84cc16">2</span></td>
@@ -2074,9 +2125,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+3,61%</span></td>
   <td style="text-align:right"><span class="na">—</span></td>
   <td style="text-align:right"><span class="na">—</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
+  <td id="alloc-equ-1"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="2.07" data-a1="4.8" data-a3="18.36" data-a5="21.76">
   <td style="font-size:11px;color:#a0aec0">2</td>
   <td class="fund-name">DNCA Eurose (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
@@ -2084,9 +2135,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+4,80%</span></td>
   <td style="text-align:right"><span class="pos">+18,36%</span></td>
   <td style="text-align:right"><span class="pos">+21,76%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-equ-2"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="15" data-ytd="10.12" data-a1="13.87" data-a3="32.52" data-a5="16.55">
   <td style="font-size:11px;color:#a0aec0">3</td>
   <td class="fund-name">DNCA Invest Convertibles (B)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
@@ -2094,9 +2145,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+13,87%</span></td>
   <td style="text-align:right"><span class="pos">+32,52%</span></td>
   <td style="text-align:right"><span class="pos">+16,55%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
+  <td id="alloc-equ-3"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="15" data-ytd="3.82" data-a1="11.3" data-a3="29.54" data-a5="12.47">
   <td style="font-size:11px;color:#a0aec0">4</td>
   <td class="fund-name">Carmignac Patrimoine (A)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
@@ -2104,9 +2155,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+11,30%</span></td>
   <td style="text-align:right"><span class="pos">+29,54%</span></td>
   <td style="text-align:right"><span class="pos">+12,47%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
+  <td id="alloc-equ-4"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="1.16" data-a1="10.28" data-a3="20.34" data-a5="16.39">
   <td style="font-size:11px;color:#a0aec0">5</td>
   <td class="fund-name">CPR Croissance Réactive (P)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
@@ -2114,9 +2165,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+10,28%</span></td>
   <td style="text-align:right"><span class="pos">+20,34%</span></td>
   <td style="text-align:right"><span class="pos">+16,39%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-equ-5"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="1.28" data-a1="9.16" data-a3="22.4" data-a5="13.49">
   <td style="font-size:11px;color:#a0aec0">6</td>
   <td class="fund-name">Conservateur Diversifié (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
@@ -2124,9 +2175,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+9,16%</span></td>
   <td style="text-align:right"><span class="pos">+22,40%</span></td>
   <td style="text-align:right"><span class="pos">+13,49%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-equ-6"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="3.5" data-a1="5.04" data-a3="21.43" data-a5="15.88">
   <td style="font-size:11px;color:#a0aec0">7</td>
   <td class="fund-name">Congrégation Investissement (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
@@ -2134,9 +2185,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+5,04%</span></td>
   <td style="text-align:right"><span class="pos">+21,43%</span></td>
   <td style="text-align:right"><span class="pos">+15,88%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-equ-7"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="-4.94" data-a1="11.52" data-a3="39.66" data-a5="34.94">
   <td style="font-size:11px;color:#a0aec0">8</td>
   <td class="fund-name">R-co Valor (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f97316">5</span></td>
@@ -2144,9 +2195,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+11,52%</span></td>
   <td style="text-align:right"><span class="pos">+39,66%</span></td>
   <td style="text-align:right"><span class="pos">+34,94%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-equ-8"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="5.13" data-a1="9.16" data-a3="29.28" data-a5="null">
   <td style="font-size:11px;color:#a0aec0">9</td>
   <td class="fund-name">Conservateur Actions Flexibles (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f97316">5</span></td>
@@ -2154,9 +2205,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+9,16%</span></td>
   <td style="text-align:right"><span class="pos">+29,28%</span></td>
   <td style="text-align:right"><span class="na">—</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-equ-9"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="5" data-ytd="-2.42" data-a1="7.37" data-a3="29.05" data-a5="18.64">
   <td style="font-size:11px;color:#a0aec0">10</td>
   <td class="fund-name">R-co Valor Balanced (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f97316">5</span></td>
@@ -2164,7 +2215,7 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+7,37%</span></td>
   <td style="text-align:right"><span class="pos">+29,05%</span></td>
   <td style="text-align:right"><span class="pos">+18,64%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
+  <td id="alloc-equ-10"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
 </tbody></table></div>
 <p style="font-size:11px;color:#a0aec0;margin-top:8px;padding:0 4px">15% SRRI2–3 (ancre défensive) · 55% SRRI4 (diversifiés) · 30% SRRI5 (actions flexibles). Performances passées cumulées, non garanties.</p>
@@ -2174,8 +2225,8 @@ tr.top3 td:first-child{font-weight:700}
   <div class="ptf-title ptf-t-dyn">🔴 Portefeuille Dynamique</div>
   <div class="ptf-sub ptf-s-dyn">Horizon 7–10 ans · Croissance forte · Rendement cible ~15–20%/an</div>
   <div class="ptf-kpis">
-    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 1 An</div><div class="ptf-kpi-val pos">+24,8 %</div></div>
-    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 3 Ans</div><div class="ptf-kpi-val pos">+57,2 %</div></div>
+    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 1 An</div><div class="ptf-kpi-val pos" id="kpi-a1-dyn">+24,8 %</div></div>
+    <div class="ptf-kpi"><div class="ptf-kpi-lbl">Perf. estim. 3 Ans</div><div class="ptf-kpi-val pos" id="kpi-a3-dyn">+57,2 %</div></div>
     <div class="ptf-kpi"><div class="ptf-kpi-lbl">SRRI moyen pond.</div><div class="ptf-kpi-val ">5,9</div></div>
     <div class="ptf-kpi"><div class="ptf-kpi-lbl">Fonds sélectionnés</div><div class="ptf-kpi-val ">10</div></div>
   </div>
@@ -2193,7 +2244,17 @@ tr.top3 td:first-child{font-weight:700}
   <th style="width:110px">Allocation</th>
 </tr></thead>
 <tbody>
-<tr>
+<tr class="fe-row">
+  <td style="font-size:13px;text-align:center">★</td>
+  <td class="fund-name">🏦 Fonds en Euros</td>
+  <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
+  <td style="text-align:right" id="fe-ytd-dyn">—</td>
+  <td style="text-align:right" id="fe-a1-dyn">—</td>
+  <td style="text-align:right" id="fe-a3-dyn">—</td>
+  <td style="text-align:right" id="fe-a5-dyn">—</td>
+  <td id="fe-alloc-dyn"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:84px"></div><span style="font-size:12px;font-weight:600;min-width:28px">30 %</span></div></td>
+</tr>
+<tr class="uc-row" data-pct="10" data-ytd="10.12" data-a1="13.87" data-a3="32.52" data-a5="16.55">
   <td style="font-size:11px;color:#a0aec0">1</td>
   <td class="fund-name">DNCA Invest Convertibles (B)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
@@ -2201,9 +2262,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+13,87%</span></td>
   <td style="text-align:right"><span class="pos">+32,52%</span></td>
   <td style="text-align:right"><span class="pos">+16,55%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-dyn-1"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="15" data-ytd="10.55" data-a1="32.95" data-a3="82.25" data-a5="58.21">
   <td style="font-size:11px;color:#a0aec0">2</td>
   <td class="fund-name">Carmignac Investissement (A)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
@@ -2211,9 +2272,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+32,95%</span></td>
   <td style="text-align:right"><span class="pos">+82,25%</span></td>
   <td style="text-align:right"><span class="pos">+58,21%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
+  <td id="alloc-dyn-2"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="15" data-ytd="10.19" data-a1="23.56" data-a3="56.45" data-a5="58.77">
   <td style="font-size:11px;color:#a0aec0">3</td>
   <td class="fund-name">FF – World Fund (A)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
@@ -2221,9 +2282,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+23,56%</span></td>
   <td style="text-align:right"><span class="pos">+56,45%</span></td>
   <td style="text-align:right"><span class="pos">+58,77%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
+  <td id="alloc-dyn-3"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="24.37" data-a1="49.19" data-a3="55.35" data-a5="12.2">
   <td style="font-size:11px;color:#a0aec0">4</td>
   <td class="fund-name">Magellan (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
@@ -2231,9 +2292,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+49,19%</span></td>
   <td style="text-align:right"><span class="pos">+55,35%</span></td>
   <td style="text-align:right"><span class="pos">+12,20%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-dyn-4"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="8.13" data-a1="15.26" data-a3="44.08" data-a5="25.25">
   <td style="font-size:11px;color:#a0aec0">5</td>
   <td class="fund-name">Conservateur Actions Monde (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
@@ -2241,9 +2302,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+15,26%</span></td>
   <td style="text-align:right"><span class="pos">+44,08%</span></td>
   <td style="text-align:right"><span class="pos">+25,25%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-dyn-5"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="10" data-ytd="9.8" data-a1="14.09" data-a3="41.08" data-a5="39.97">
   <td style="font-size:11px;color:#a0aec0">6</td>
   <td class="fund-name">OFI Croiss. Durable &amp; Solidaire (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
@@ -2251,9 +2312,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+14,09%</span></td>
   <td style="text-align:right"><span class="pos">+41,08%</span></td>
   <td style="text-align:right"><span class="pos">+39,97%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
+  <td id="alloc-dyn-6"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="5" data-ytd="9.46" data-a1="13.61" data-a3="34.41" data-a5="54.99">
   <td style="font-size:11px;color:#a0aec0">7</td>
   <td class="fund-name">Centifolia (C)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
@@ -2261,9 +2322,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+13,61%</span></td>
   <td style="text-align:right"><span class="pos">+34,41%</span></td>
   <td style="text-align:right"><span class="pos">+54,99%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
+  <td id="alloc-dyn-7"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="5" data-ytd="8.12" data-a1="15.88" data-a3="38.41" data-a5="23.84">
   <td style="font-size:11px;color:#a0aec0">8</td>
   <td class="fund-name">EdR Fund – Big Data (A)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
@@ -2271,9 +2332,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+15,88%</span></td>
   <td style="text-align:right"><span class="pos">+38,41%</span></td>
   <td style="text-align:right"><span class="pos">+23,84%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
+  <td id="alloc-dyn-8"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="15" data-ytd="24.11" data-a1="47.31" data-a3="122.88" data-a5="60.75">
   <td style="font-size:11px;color:#a0aec0">9</td>
   <td class="fund-name">Echiquier Artificial Intelligence (B)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#991b1b">7</span></td>
@@ -2281,9 +2342,9 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+47,31%</span></td>
   <td style="text-align:right"><span class="pos">+122,88%</span></td>
   <td style="text-align:right"><span class="pos">+60,75%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
+  <td id="alloc-dyn-9"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr>
+<tr class="uc-row" data-pct="5" data-ytd="37.29" data-a1="67.47" data-a3="78.55" data-a5="90.93">
   <td style="font-size:11px;color:#a0aec0">10</td>
   <td class="fund-name">Pictet Clean Energy Transition (P)</td>
   <td style="text-align:center"><span class="srri-badge" style="background:#991b1b">7</span></td>
@@ -2291,7 +2352,7 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+67,47%</span></td>
   <td style="text-align:right"><span class="pos">+78,55%</span></td>
   <td style="text-align:right"><span class="pos">+90,93%</span></td>
-  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
+  <td id="alloc-dyn-10"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
 </tbody></table></div>
 <p style="font-size:11px;color:#a0aec0;margin-top:8px;padding:0 4px">10% SRRI4 (ancre convertibles) · 65% SRRI6 (actions mondiales/thématiques) · 25% SRRI7 (croissance forte). Performances passées cumulées, non garanties.</p>
@@ -2847,7 +2908,84 @@ window.addEventListener('load', () => {
   const firstId = 'monetaire';
   if (barInstances[firstId])  barInstances[firstId]._resize();
   if (lineInstances[firstId]) lineInstances[firstId]._resize();
+  updateFE();
 });
+
+// ── Fonds en Euros — recalcul dynamique ───────────────────────────────────
+const _PTF_DATA = {"pru": {"cc": "pru", "funds": [{"pct": 10, "ytd": 0.53, "a1": 2.06, "a3": 12.05, "a5": 9.42}, {"pct": 10, "ytd": 0.88, "a1": 1.96, "a3": 9.37, "a5": 10.38}, {"pct": 5, "ytd": 0.66, "a1": 1.99, "a3": 10.47, "a5": 7.49}, {"pct": 20, "ytd": 1.01, "a1": 3.61, "a3": null, "a5": null}, {"pct": 15, "ytd": 0.93, "a1": 2.27, "a3": 16.45, "a5": 9.94}, {"pct": 10, "ytd": 0.77, "a1": 2.37, "a3": 13.38, "a5": 11.31}, {"pct": 15, "ytd": 2.07, "a1": 4.8, "a3": 18.36, "a5": 21.76}, {"pct": 10, "ytd": 1.59, "a1": 2.95, "a3": 3.55, "a5": 12.54}, {"pct": 3, "ytd": 0.28, "a1": 1.39, "a3": 12.18, "a5": 4.44}, {"pct": 2, "ytd": -0.39, "a1": 1.39, "a3": 12.2, "a5": 5.15}]}, "equ": {"cc": "equ", "funds": [{"pct": 5, "ytd": 1.01, "a1": 3.61, "a3": null, "a5": null}, {"pct": 10, "ytd": 2.07, "a1": 4.8, "a3": 18.36, "a5": 21.76}, {"pct": 15, "ytd": 10.12, "a1": 13.87, "a3": 32.52, "a5": 16.55}, {"pct": 15, "ytd": 3.82, "a1": 11.3, "a3": 29.54, "a5": 12.47}, {"pct": 10, "ytd": 1.16, "a1": 10.28, "a3": 20.34, "a5": 16.39}, {"pct": 10, "ytd": 1.28, "a1": 9.16, "a3": 22.4, "a5": 13.49}, {"pct": 10, "ytd": 3.5, "a1": 5.04, "a3": 21.43, "a5": 15.88}, {"pct": 10, "ytd": -4.94, "a1": 11.52, "a3": 39.66, "a5": 34.94}, {"pct": 10, "ytd": 5.13, "a1": 9.16, "a3": 29.28, "a5": null}, {"pct": 5, "ytd": -2.42, "a1": 7.37, "a3": 29.05, "a5": 18.64}]}, "dyn": {"cc": "dyn", "funds": [{"pct": 10, "ytd": 10.12, "a1": 13.87, "a3": 32.52, "a5": 16.55}, {"pct": 15, "ytd": 10.55, "a1": 32.95, "a3": 82.25, "a5": 58.21}, {"pct": 15, "ytd": 10.19, "a1": 23.56, "a3": 56.45, "a5": 58.77}, {"pct": 10, "ytd": 24.37, "a1": 49.19, "a3": 55.35, "a5": 12.2}, {"pct": 10, "ytd": 8.13, "a1": 15.26, "a3": 44.08, "a5": 25.25}, {"pct": 10, "ytd": 9.8, "a1": 14.09, "a3": 41.08, "a5": 39.97}, {"pct": 5, "ytd": 9.46, "a1": 13.61, "a3": 34.41, "a5": 54.99}, {"pct": 5, "ytd": 8.12, "a1": 15.88, "a3": 38.41, "a5": 23.84}, {"pct": 15, "ytd": 24.11, "a1": 47.31, "a3": 122.88, "a5": 60.75}, {"pct": 5, "ytd": 37.29, "a1": 67.47, "a3": 78.55, "a5": 90.93}]}};
+
+function updateFE() {
+  const taux    = parseFloat(document.getElementById('feTaux')?.value)  || 2.80;
+  const feAlloc = parseInt(document.getElementById('feSlider')?.value)  || 30;
+  const dispEl  = document.getElementById('feAllocVal');
+  if (dispEl) dispEl.textContent = feAlloc;
+
+  const ucScale = (100 - feAlloc) / 100;
+  const t       = taux / 100;
+
+  // YTD fraction (days since Jan 1 / 365)
+  const now   = new Date();
+  const jan1  = new Date(now.getFullYear(), 0, 1);
+  const ytdFr = (now - jan1) / (1000 * 60 * 60 * 24 * 365);
+
+  const fePerfs = {
+    ytd: taux * ytdFr,
+    a1:  taux,
+    a3:  (Math.pow(1 + t, 3) - 1) * 100,
+    a5:  (Math.pow(1 + t, 5) - 1) * 100
+  };
+
+  const fmtFE = v =>
+    v == null ? '<span class="na">—</span>' :
+    '<span class="' + (v >= 0 ? 'pos' : 'neg') + '">'
+      + (v >= 0 ? '+' : '') + v.toFixed(2).replace('.', ',') + '&nbsp;%</span>';
+
+  const fmtKpi = v =>
+    '<span class="' + (v >= 0 ? 'pos' : 'neg') + '">'
+      + (v >= 0 ? '+' : '') + v.toFixed(1).replace('.', ',') + '&nbsp;%</span>';
+
+  Object.entries(_PTF_DATA).forEach(([pid, pd]) => {
+    // FE row perf cells
+    ['ytd', 'a1', 'a3', 'a5'].forEach(k => {
+      const el = document.getElementById('fe-' + k + '-' + pid);
+      if (el) el.innerHTML = fmtFE(fePerfs[k]);
+    });
+
+    // FE allocation bar (scale 1px = ~2.04% so 30% ≈ 90px, max 49% ≈ 100px)
+    const feBarW = Math.round(feAlloc * 2.04);
+    const feAllocEl = document.getElementById('fe-alloc-' + pid);
+    if (feAllocEl) feAllocEl.innerHTML =
+      '<div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:' + feBarW + 'px"></div>'
+      + '<span style="font-size:12px;font-weight:600;min-width:28px">' + feAlloc + '&nbsp;%</span></div>';
+
+    // UC fund allocation bars (rescaled to 100 - feAlloc %)
+    pd.funds.forEach((f, i) => {
+      const rank    = i + 1;
+      const newPct  = Math.round(f.pct * ucScale * 10) / 10;
+      const barW    = Math.round(newPct * 3);
+      const allocEl = document.getElementById('alloc-' + pd.cc + '-' + rank);
+      if (allocEl) allocEl.innerHTML =
+        '<div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-' + pd.cc + '" style="width:' + barW + 'px"></div>'
+        + '<span style="font-size:12px;font-weight:600;min-width:28px">' + newPct.toFixed(1) + '&nbsp;%</span></div>';
+    });
+
+    // Blended KPI: FE share + UC weighted average
+    let sumW_a1 = 0, sumW_a3 = 0, totW = 0, totW3 = 0;
+    pd.funds.forEach(f => {
+      if (f.a1 != null) { sumW_a1 += f.pct * f.a1; totW  += f.pct; }
+      if (f.a3 != null) { sumW_a3 += f.pct * f.a3; totW3 += f.pct; }
+    });
+    if (totW  === 0) totW  = 100;
+    if (totW3 === 0) totW3 = 100;
+    const blend_a1 = feAlloc / 100 * fePerfs.a1 + ucScale * (sumW_a1 / totW);
+    const blend_a3 = feAlloc / 100 * fePerfs.a3 + ucScale * (sumW_a3 / totW3);
+
+    const k1 = document.getElementById('kpi-a1-' + pid);
+    const k3 = document.getElementById('kpi-a3-' + pid);
+    if (k1) k1.innerHTML = fmtKpi(blend_a1);
+    if (k3) k3.innerHTML = fmtKpi(blend_a3);
+  });
+}
 </script>
 </body>
 </html>

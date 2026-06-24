@@ -425,6 +425,36 @@ tr.top3 td:first-child{font-weight:700}
 .period-btn:hover{border-color:#3266ad;color:#3266ad;background:#eef3fb}
 .period-btn.active{background:#3266ad;border-color:#3266ad;color:#fff;font-weight:600}
 @media(max-width:768px){.section{padding:16px}.tabs{padding:0 16px}.stats-bar{padding:12px 16px}}
+.ptf-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.ptf-tab{padding:8px 18px;border-radius:20px;border:1px solid #e2e8f0;background:#f7fafc;font-size:13px;font-weight:500;cursor:pointer;color:#4a5568;transition:all .15s}
+.ptf-tab:hover{opacity:.85}
+.ptf-tab.active.t-pru{background:#1a3a6b;color:#fff;border-color:transparent}
+.ptf-tab.active.t-equ{background:#1D9E75;color:#fff;border-color:transparent}
+.ptf-tab.active.t-dyn{background:#993C1D;color:#fff;border-color:transparent}
+.ptf-panel{display:none}
+.ptf-panel.active{display:block}
+.ptf-header{border-radius:10px 10px 0 0;padding:16px 20px 14px}
+.ptf-h-pru{background:#E6F1FB}
+.ptf-h-equ{background:#E1F5EE}
+.ptf-h-dyn{background:#FAECE7}
+.ptf-title{font-size:17px;font-weight:700}
+.ptf-t-pru{color:#0C447C}
+.ptf-t-equ{color:#085041}
+.ptf-t-dyn{color:#712B13}
+.ptf-sub{font-size:12px;margin-top:3px}
+.ptf-s-pru{color:#378ADD}
+.ptf-s-equ{color:#1D9E75}
+.ptf-s-dyn{color:#D85A30}
+.ptf-kpis{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.ptf-kpi{flex:1;min-width:100px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;padding:10px 14px}
+.ptf-kpi-lbl{font-size:11px;color:#718096;margin-bottom:4px}
+.ptf-kpi-val{font-size:18px;font-weight:700;color:#1a202c}
+.ptf-kpi-val.pos{color:#22863a}
+.ptf-pct-bar{display:flex;align-items:center;gap:6px}
+.ptf-mini-bar{height:6px;border-radius:3px}
+.ptf-bar-pru{background:#1a3a6b}
+.ptf-bar-equ{background:#1D9E75}
+.ptf-bar-dyn{background:#993C1D}
 </style>
 </head>
 <body>
@@ -437,7 +467,7 @@ worst = min((f for c in CATEGORIES for f in c["funds"] if f["ytd"] is not None),
 
 html_parts.append(f"""<header>
 <h1>📊 Le Conservateur — Analyse des Fonds</h1>
-<p>VL &amp; YTD : {_fmt_date_fr(_VL_OVERRIDE_DATE)} · Performances historiques : Boursorama (au {_fmt_date_short(_HIST_LAST_UPDATED)})</p>
+<p>VL &amp; YTD : Boursorama au {_fmt_date_fr(_VL_OVERRIDE_DATE)} · Performances historiques : Boursorama (au {_fmt_date_short(_HIST_LAST_UPDATED)})</p>
 </header>
 <div class="stats-bar">
   <div class="stat"><div class="val">{total}</div><div class="lbl">Fonds analysés</div></div>
@@ -497,6 +527,7 @@ for i, cat in enumerate(CATEGORIES):
     active = "active" if i == 0 else ""
     html_parts.append(f'  <div class="tab {active}" onclick="showTab(\'{cat["id"]}\')" id="tab_{cat["id"]}">{cat["label"]} <span style="font-size:11px;opacity:.7">({len(cat["funds"])})</span></div>\n')
 
+html_parts.append('  <div class="tab" onclick="showTab(\'portefeuilles\')" id="tab_portefeuilles">💼 Portefeuilles <span style="font-size:11px;opacity:.7">(3)</span></div>\n')
 html_parts.append("</div>\n")
 
 # ── Collect all chart data for JS ──────────────────────────────────────────────
@@ -530,7 +561,7 @@ for i, cat in enumerate(CATEGORIES):
 
     html_parts.append(f'<div class="section {active}" id="sec_{cid}">\n')
     html_parts.append(f'<div class="cat-header"><h2>{cat["label"]}</h2><span class="badge">{len(cat["funds"])} fonds</span></div>\n')
-    html_parts.append('<div class="source-note">📅 Performances historiques issues de Boursorama — calcul au {_fmt_date_short(_HIST_LAST_UPDATED)} · YTD (depuis le 1er janv.) issu de Boursorama au {_fmt_date_short(_VL_OVERRIDE_DATE)}</div>\n')
+    html_parts.append(f'<div class="source-note">📅 Performances historiques issues de Boursorama — calcul au {_fmt_date_short(_HIST_LAST_UPDATED)} · YTD (depuis le 1er janv.) issu de Boursorama au {_fmt_date_short(_VL_OVERRIDE_DATE)}</div>\n')
 
     # Top 5 cards
     html_parts.append('<div class="top5">\n')
@@ -577,7 +608,7 @@ for i, cat in enumerate(CATEGORIES):
 </div>'''
         _line_title = "Évolution VL — données réelles Boursorama"
     else:
-        _line_subtitle = "Données Boursorama au {_fmt_date_short(_HIST_LAST_UPDATED)} — axe Y : % cumulé réel"
+        _line_subtitle = f"Données Boursorama au {_fmt_date_short(_HIST_LAST_UPDATED)} — axe Y : % cumulé réel"
         _line_buttons = f'''<div class="period-btns">
   <button class="period-btn active" data-cat="{cid}" data-period="10A" onclick="filterLinePeriod('{cid}','10A')">10 Ans</button>
   <button class="period-btn" data-cat="{cid}" data-period="5A" onclick="filterLinePeriod('{cid}','5A')">5 Ans</button>
@@ -703,12 +734,12 @@ for i, cat in enumerate(CATEGORIES):
   <th onclick="sortTable('tbl_{cid}',2)">Gérant</th>
   <th onclick="sortTable('tbl_{cid}',3)" style="text-align:center">SRRI</th>
   <th onclick="sortTable('tbl_{cid}',4)" style="text-align:right">VL</th>
-  <th onclick="sortTable('tbl_{cid}',5)" style="text-align:right" title="YTD au {_fmt_date_short(_VL_OVERRIDE_DATE)}">YTD</th>
-  <th onclick="sortTable('tbl_{cid}',6)" style="text-align:right" title="1 mois — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">1 Mois</th>
-  <th onclick="sortTable('tbl_{cid}',7)" style="text-align:right" title="6 mois — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">6 Mois</th>
-  <th onclick="sortTable('tbl_{cid}',8)" style="text-align:right" title="1 an — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">1 An</th>
-  <th onclick="sortTable('tbl_{cid}',9)" style="text-align:right" title="3 ans — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">3 Ans</th>
-  <th onclick="sortTable('tbl_{cid}',10)" style="text-align:right" title="5 ans — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">5 Ans</th>
+  <th onclick="sortTable('tbl_{{cid}}',5)" style="text-align:right" title="YTD au {_fmt_date_short(_VL_OVERRIDE_DATE)}">YTD</th>
+  <th onclick="sortTable('tbl_{{cid}}',6)" style="text-align:right" title="1 mois — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">1 Mois</th>
+  <th onclick="sortTable('tbl_{{cid}}',7)" style="text-align:right" title="6 mois — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">6 Mois</th>
+  <th onclick="sortTable('tbl_{{cid}}',8)" style="text-align:right" title="1 an — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">1 An</th>
+  <th onclick="sortTable('tbl_{{cid}}',9)" style="text-align:right" title="3 ans — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">3 Ans</th>
+  <th onclick="sortTable('tbl_{{cid}}',10)" style="text-align:right" title="5 ans — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">5 Ans</th>
   <th style="text-align:center">Boursorama</th>
 </tr></thead>
 <tbody>
@@ -736,6 +767,146 @@ for i, cat in enumerate(CATEGORIES):
 ''')
     html_parts.append('</tbody></table></div>\n')
     html_parts.append('</div>\n')  # end section
+
+# ── Section Portefeuilles ──────────────────────────────────────────────────────
+_SRRI_COLORS_PTF = {1:"#22c55e",2:"#84cc16",3:"#eab308",4:"#f59e0b",5:"#f97316",6:"#ef4444",7:"#991b1b"}
+
+_PORTFOLIOS_DATA = [
+    {
+        "id": "pru", "label": "Prudent", "emoji": "🔵",
+        "range": "SRRI 1–3", "color_cls": "pru",
+        "desc": "Horizon 3–5 ans · Préservation du capital · Rendement cible ~2–3%/an",
+        "kpis": [
+            ("Perf. estim. 1 An", "+2,6 %", "pos"),
+            ("Perf. estim. 3 Ans", "+13,5 %", "pos"),
+            ("SRRI moyen pond.", "2,0", ""),
+            ("Fonds sélectionnés", "10", ""),
+        ],
+        "note": "25% SRRI1 (monétaire) · 45% SRRI2 (oblig. horizon) · 30% SRRI3 (diversifié prudent)",
+        "funds": [
+            (1, "TF – Tikehau Short Duration (R)", 1, "+0,53%", "+2,06%", "+12,05%", "+9,42%", 10),
+            (2, "Palatine Monétaire Court Terme (R)", 1, "+0,88%", "+1,96%", "+9,37%", "+10,38%", 10),
+            (3, "Conservateur Oblig. CT (C)", 1, "+0,66%", "+1,99%", "+10,47%", "+7,49%", 5),
+            (4, "Conservateur Horizon 2031 (I)", 2, "+1,01%", "+3,61%", "—", "—", 20),
+            (5, "Conservateur Horizon 2027 (I)", 2, "+0,93%", "+2,27%", "+16,45%", "+9,94%", 15),
+            (6, "Oddo BHF Global Target 2026 (CR)", 2, "+0,77%", "+2,37%", "+13,38%", "+11,31%", 10),
+            (7, "DNCA Eurose (C)", 3, "+2,07%", "+4,80%", "+18,36%", "+21,76%", 15),
+            (8, "DNCA Invest Flex Inflation", 3, "+1,59%", "+2,95%", "+3,55%", "+12,54%", 10),
+            (9, "Conservateur Oblig. MT (C)", 3, "+0,28%", "+1,39%", "+12,18%", "+4,44%", 3),
+            (10, "Oddo Sustainable Credit Options (CR)", 3, "−0,39%", "+1,39%", "+12,20%", "+5,15%", 2),
+        ]
+    },
+    {
+        "id": "equ", "label": "Équilibré", "emoji": "🟢",
+        "range": "SRRI 1–5", "color_cls": "equ",
+        "desc": "Horizon 5–7 ans · Croissance modérée · Rendement cible ~7–9%/an",
+        "kpis": [
+            ("Perf. estim. 1 An", "+8,7 %", "pos"),
+            ("Perf. estim. 3 Ans", "+25,8 %", "pos"),
+            ("SRRI moyen pond.", "4,1", ""),
+            ("Fonds sélectionnés", "10", ""),
+        ],
+        "note": "15% SRRI2–3 (ancre défensive) · 55% SRRI4 (diversifiés) · 30% SRRI5 (actions flexibles)",
+        "funds": [
+            (1, "Conservateur Horizon 2031 (I)", 2, "+1,01%", "+3,61%", "—", "—", 5),
+            (2, "DNCA Eurose (C)", 3, "+2,07%", "+4,80%", "+18,36%", "+21,76%", 10),
+            (3, "DNCA Invest Convertibles (B)", 4, "+10,12%", "+13,87%", "+32,52%", "+16,55%", 15),
+            (4, "Carmignac Patrimoine (A)", 4, "+3,82%", "+11,30%", "+29,54%", "+12,47%", 15),
+            (5, "CPR Croissance Réactive (P)", 4, "+1,16%", "+10,28%", "+20,34%", "+16,39%", 10),
+            (6, "Conservateur Diversifié (C)", 4, "+1,28%", "+9,16%", "+22,40%", "+13,49%", 10),
+            (7, "Congrégation Investissement (C)", 4, "+3,50%", "+5,04%", "+21,43%", "+15,88%", 10),
+            (8, "R-co Valor (C)", 5, "−4,94%", "+11,52%", "+39,66%", "+34,94%", 10),
+            (9, "Conservateur Actions Flexibles (C)", 5, "+5,13%", "+9,16%", "+29,28%", "—", 10),
+            (10, "R-co Valor Balanced (C)", 5, "−2,42%", "+7,37%", "+29,05%", "+18,64%", 5),
+        ]
+    },
+    {
+        "id": "dyn", "label": "Dynamique", "emoji": "🔴",
+        "range": "SRRI 1–7", "color_cls": "dyn",
+        "desc": "Horizon 7–10 ans · Croissance forte · Rendement cible ~15–20%/an",
+        "kpis": [
+            ("Perf. estim. 1 An", "+24,8 %", "pos"),
+            ("Perf. estim. 3 Ans", "+57,2 %", "pos"),
+            ("SRRI moyen pond.", "5,9", ""),
+            ("Fonds sélectionnés", "10", ""),
+        ],
+        "note": "10% SRRI4 (ancre convertibles) · 65% SRRI6 (actions mondiales/thématiques) · 25% SRRI7 (croissance forte)",
+        "funds": [
+            (1, "DNCA Invest Convertibles (B)", 4, "+10,12%", "+13,87%", "+32,52%", "+16,55%", 10),
+            (2, "Carmignac Investissement (A)", 6, "+10,55%", "+32,95%", "+82,25%", "+58,21%", 15),
+            (3, "FF – World Fund (A)", 6, "+10,19%", "+23,56%", "+56,45%", "+58,77%", 15),
+            (4, "Magellan (C)", 6, "+24,37%", "+49,19%", "+55,35%", "+12,20%", 10),
+            (5, "Conservateur Actions Monde (C)", 6, "+8,13%", "+15,26%", "+44,08%", "+25,25%", 10),
+            (6, "OFI Croiss. Durable &amp; Solidaire (C)", 6, "+9,80%", "+14,09%", "+41,08%", "+39,97%", 10),
+            (7, "Centifolia (C)", 6, "+9,46%", "+13,61%", "+34,41%", "+54,99%", 5),
+            (8, "EdR Fund – Big Data (A)", 6, "+8,12%", "+15,88%", "+38,41%", "+23,84%", 5),
+            (9, "Echiquier Artificial Intelligence (B)", 7, "+24,11%", "+47,31%", "+122,88%", "+60,75%", 15),
+            (10, "Pictet Clean Energy Transition (P)", 7, "+37,29%", "+67,47%", "+78,55%", "+90,93%", 5),
+        ]
+    },
+]
+
+def _ptf_perf(v):
+    if v == "—":
+        return '<span class="na">—</span>'
+    if v.startswith("+"):
+        return f'<span class="pos">{v}</span>'
+    return f'<span class="neg">{v}</span>'
+
+html_parts.append('<div class="section" id="sec_portefeuilles">\n')
+html_parts.append('<div class="cat-header"><h2>💼 Portefeuilles Optimisés</h2><span class="badge">3 profils de risque</span></div>\n')
+html_parts.append(f'<div class="source-note">📅 Construit sur la base des performances Boursorama au {_fmt_date_short(_HIST_LAST_UPDATED)} — Sélection et pondération optimisée des 10 meilleurs fonds par profil SRRI</div>\n')
+
+# Inner portfolio tabs
+html_parts.append('<div class="ptf-tabs">\n')
+for pi, ptf in enumerate(_PORTFOLIOS_DATA):
+    _active_ptf = "active" if pi == 0 else ""
+    html_parts.append(f'  <div class="ptf-tab {_active_ptf} t-{ptf["color_cls"]}" onclick="ptfShow(\'{ptf["id"]}\')">{ptf["emoji"]} {ptf["label"]} · {ptf["range"]}</div>\n')
+html_parts.append('</div>\n')
+
+for pi, ptf in enumerate(_PORTFOLIOS_DATA):
+    _active_ptf = "active" if pi == 0 else ""
+    cc = ptf["color_cls"]
+
+    html_parts.append(f'<div class="ptf-panel {_active_ptf}" id="ptf_{ptf["id"]}">\n')
+    html_parts.append(f'<div class="ptf-header ptf-h-{cc}">\n')
+    html_parts.append(f'  <div class="ptf-title ptf-t-{cc}">{ptf["emoji"]} Portefeuille {ptf["label"]}</div>\n')
+    html_parts.append(f'  <div class="ptf-sub ptf-s-{cc}">{ptf["desc"]}</div>\n')
+    html_parts.append('  <div class="ptf-kpis">\n')
+    for lbl, val, cls in ptf["kpis"]:
+        html_parts.append(f'    <div class="ptf-kpi"><div class="ptf-kpi-lbl">{lbl}</div><div class="ptf-kpi-val {cls}">{val}</div></div>\n')
+    html_parts.append('  </div>\n</div>\n')
+
+    html_parts.append('<div class="table-wrap" style="border-radius:0 0 10px 10px;margin-top:0">\n')
+    html_parts.append('<table>\n<thead><tr>\n')
+    html_parts.append('  <th style="width:32px">#</th>\n  <th>Fonds</th>\n')
+    html_parts.append('  <th style="text-align:center;width:48px">SRRI</th>\n')
+    html_parts.append('  <th style="text-align:right;width:60px">YTD</th>\n')
+    html_parts.append('  <th style="text-align:right;width:60px">1 An</th>\n')
+    html_parts.append('  <th style="text-align:right;width:60px">3 Ans</th>\n')
+    html_parts.append('  <th style="text-align:right;width:60px">5 Ans</th>\n')
+    html_parts.append('  <th style="width:110px">Allocation</th>\n')
+    html_parts.append('</tr></thead>\n<tbody>\n')
+
+    for rank, name, srri, ytd, a1, a3, a5, pct in ptf["funds"]:
+        sc = _SRRI_COLORS_PTF.get(srri, "#94a3b8")
+        bar_w = pct * 3
+        html_parts.append(f'''<tr>
+  <td style="font-size:11px;color:#a0aec0">{rank}</td>
+  <td class="fund-name">{name}</td>
+  <td style="text-align:center"><span class="srri-badge" style="background:{sc}">{srri}</span></td>
+  <td style="text-align:right">{_ptf_perf(ytd)}</td>
+  <td style="text-align:right">{_ptf_perf(a1)}</td>
+  <td style="text-align:right">{_ptf_perf(a3)}</td>
+  <td style="text-align:right">{_ptf_perf(a5)}</td>
+  <td><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-{cc}" style="width:{bar_w}px"></div><span style="font-size:12px;font-weight:600;min-width:28px">{pct} %</span></div></td>
+</tr>\n''')
+
+    html_parts.append('</tbody></table></div>\n')
+    html_parts.append(f'<p style="font-size:11px;color:#a0aec0;margin-top:8px;padding:0 4px">{ptf["note"]}. Performances passées cumulées, non garanties.</p>\n')
+    html_parts.append('</div>\n')  # end ptf-panel
+
+html_parts.append('</div>\n')  # end sec_portefeuilles
 
 # ── JavaScript ────────────────────────────────────────────────────────────────
 bar_js  = json.dumps(all_bar_charts,  ensure_ascii=False)
@@ -1278,6 +1449,16 @@ function filterLinePeriod(catId, period) {{
     normW = rawW.map(w => (w - wMin) / wRange);
   }}
   chart.setData(slicedLabels, newDs, normW);
+}}
+
+// ── Portfolio tabs ────────────────────────────────────────────────────────────
+function ptfShow(id) {{
+  document.querySelectorAll('.ptf-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ptf-panel').forEach(p => p.classList.remove('active'));
+  const btn = document.querySelector('.ptf-tab.t-'+id);
+  if (btn) btn.classList.add('active');
+  const panel = document.getElementById('ptf_'+id);
+  if (panel) panel.classList.add('active');
 }}
 
 // ── Resize fenêtre (debounce 120ms — sans boucle) ─────────────────────────

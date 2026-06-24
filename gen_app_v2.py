@@ -1643,8 +1643,9 @@ function _getFETranche(ucPct) {{
 function updateFE() {{
   const feAlloc  = parseInt(document.getElementById('feSlider')?.value)  || 30;
   const dopAlloc = parseInt(document.getElementById('dopSlider')?.value) || 0;
-  const ucPct    = 100 - feAlloc - dopAlloc;
-  const taux     = _getFERate(ucPct);
+  const ucForRate = 100 - feAlloc;           // taux FE basé sur FE vs UC uniquement (DOP exclu)
+  const ucPct     = 100 - feAlloc - dopAlloc; // allocation UC réelle pour les fonds
+  const taux      = _getFERate(ucForRate);
 
   // Contrôles
   const dispEl = document.getElementById('feAllocVal');
@@ -1654,7 +1655,7 @@ function updateFE() {{
   const tauxEl = document.getElementById('feTauxDisplay');
   if (tauxEl) tauxEl.textContent = taux.toFixed(2).replace('.', ',') + ' %';
   const trancheEl = document.getElementById('feTranche');
-  if (trancheEl) trancheEl.textContent = _getFETranche(ucPct);
+  if (trancheEl) trancheEl.textContent = _getFETranche(ucForRate);
 
   const ucScale  = ucPct / 100;
   const t        = taux / 100;

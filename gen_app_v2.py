@@ -478,6 +478,12 @@ tr.top3 td:first-child{font-weight:700}
 .chk-fund{width:15px;height:15px;cursor:pointer;accent-color:#4a90d9;flex-shrink:0}
 .uc-row.deselected>td{opacity:0.35}
 .uc-row.deselected .fund-name{text-decoration:line-through;color:#a0aec0}
+.alloc-wrap{display:flex;align-items:center;gap:4px}
+.manual-alloc{width:38px;font-size:11px;border:1px solid #e2e8f0;border-radius:3px;padding:1px 3px;text-align:center;color:#718096;background:transparent;-moz-appearance:textfield}
+.manual-alloc::-webkit-outer-spin-button,.manual-alloc::-webkit-inner-spin-button{-webkit-appearance:none}
+.manual-alloc:focus{border-color:#4a90d9;outline:none;background:#fff}
+.manual-alloc.is-manual{border-color:#f59e0b!important;background:#fffdf0;color:#92400e;font-weight:700}
+.manual-alloc.is-overflow{border-color:#ef4444!important;background:#fee2e2;color:#991b1b}
 .ftype-badge{display:inline-block;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;opacity:0.85;letter-spacing:0.2px}
 .ftype-1{border-left:3px solid #3b82f6!important}.ftype-badge-1{background:#dbeafe;color:#1d4ed8}
 .ftype-2{border-left:3px solid #06b6d4!important}.ftype-badge-2{background:#cffafe;color:#0e7490}
@@ -1044,7 +1050,7 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
   <td style="text-align:right">{_ptf_perf(a1)}</td>
   <td style="text-align:right">{_ptf_perf(a3)}</td>
   <td style="text-align:right">{_ptf_perf(a5)}</td>
-  <td id="alloc-{cc}-{rank}"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-{cc}" style="width:{bar_w}px"></div><span style="font-size:12px;font-weight:600;min-width:28px">{pct} %</span></div></td>
+  <td id="alloc-{cc}-{rank}"><div class="alloc-wrap"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-{cc}" id="bar-{cc}-{rank}" style="width:{bar_w}px"></div><span id="pct-{cc}-{rank}" style="font-size:12px;font-weight:600;min-width:28px">{pct}&nbsp;%</span></div><input type="number" class="manual-alloc" id="minput-{cc}-{rank}" min="0" max="100" step="0.5" placeholder="%" oninput="updateFE()" title="Allocation manuelle — laisser vide pour auto"></div></td>
 </tr>\n''')
 
     html_parts.append('</tbody></table></div>\n')
@@ -1738,35 +1744,61 @@ function updateFE() {{
     const dopAllocEl = document.getElementById('dop-alloc-' + pid);
     if (dopAllocEl) dopAllocEl.innerHTML = dopAlloc > 0 ? mkBar(dopAlloc, 'dop') : emptyBar;
 
-    // ── UC fund allocation bars — redistribution sur fonds cochés
-    const totalSelPct = pd.funds.reduce((s, f, i) => {{
-      const chk = document.getElementById('chk-' + pd.cc + '-' + (i + 1));
-      return s + ((chk && chk.checked) ? f.pct : 0);
-    }}, 0) || 100;
-
+    // ── UC fund allocation — redistribution avec overrides manuels
+    // Passe 1 : séparer manuels vs auto
+    let manualSum = 0, autoInitPct = 0;
+    const allocMeta = {{}};
     pd.funds.forEach((f, i) => {{
-      const rank    = i + 1;
-      const chk     = document.getElementById('chk-' + pd.cc + '-' + rank);
-      const sel     = chk ? chk.checked : true;
-      const rowEl   = chk ? chk.closest('tr') : null;
+      const rank = i + 1;
+      const chk  = document.getElementById('chk-' + pd.cc + '-' + rank);
+      const sel  = chk ? chk.checked : true;
+      const inp  = document.getElementById('minput-' + pd.cc + '-' + rank);
+      const raw  = inp ? inp.value.trim() : '';
+      const mv   = raw !== '' ? parseFloat(raw) : NaN;
+      const isM  = sel && !isNaN(mv) && mv >= 0;
+      allocMeta[rank] = {{ sel, isManual: isM, manVal: mv }};
+      if (sel) {{ if (isM) manualSum += mv; else autoInitPct += f.pct; }}
+    }});
+    const autoSpace = Math.max(0, ucPct - manualSum);
+    const overflow  = manualSum > ucPct;
+
+    // Passe 2 : afficher barres + inputs
+    const actualAllocs = {{}};
+    pd.funds.forEach((f, i) => {{
+      const rank  = i + 1;
+      const {{ sel, isManual, manVal }} = allocMeta[rank];
+      const chk   = document.getElementById('chk-' + pd.cc + '-' + rank);
+      const rowEl = chk ? chk.closest('tr') : null;
       if (rowEl) rowEl.classList.toggle('deselected', !sel);
-      const allocEl = document.getElementById('alloc-' + pd.cc + '-' + rank);
-      if (!allocEl) return;
-      if (!sel) {{ allocEl.innerHTML = emptyBar; return; }}
-      const newPct = Math.round(f.pct / totalSelPct * ucPct * 10) / 10;
-      const barW   = Math.round(newPct * 3);
-      allocEl.innerHTML =
-        '<div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-' + pd.cc + '" style="width:' + barW + 'px"></div>'
-        + '<span style="font-size:12px;font-weight:600;min-width:28px">' + newPct.toFixed(1) + '&nbsp;%</span></div>';
+      const barEl = document.getElementById('bar-' + pd.cc + '-' + rank);
+      const pctEl = document.getElementById('pct-' + pd.cc + '-' + rank);
+      const inp   = document.getElementById('minput-' + pd.cc + '-' + rank);
+      if (inp) {{
+        inp.classList.toggle('is-manual',   !!(sel && isManual && !overflow));
+        inp.classList.toggle('is-overflow', !!(sel && isManual && overflow));
+      }}
+      if (!sel) {{
+        if (barEl) barEl.style.width = '0px';
+        if (pctEl) pctEl.textContent = '—';
+        actualAllocs[rank] = 0;
+        return;
+      }}
+      const newPct = isManual ? manVal
+        : (autoInitPct > 0 ? Math.round(f.pct / autoInitPct * autoSpace * 10) / 10 : 0);
+      actualAllocs[rank] = newPct;
+      if (barEl) barEl.style.width = Math.round(newPct * 3) + 'px';
+      if (pctEl) pctEl.textContent = newPct.toFixed(1) + ' %';
     }});
 
-    // ── KPI blended : FE + DOP + UC (fonds sélectionnés)
+    // ── KPI blended : FE + DOP + UC (pondéré par allocations réelles)
     let sumW_a1 = 0, sumW_a3 = 0, totW = 0, totW3 = 0;
     pd.funds.forEach((f, i) => {{
-      const chk = document.getElementById('chk-' + pd.cc + '-' + (i + 1));
+      const rank = i + 1;
+      const chk  = document.getElementById('chk-' + pd.cc + '-' + rank);
       if (!chk || !chk.checked) return;
-      if (f.a1 != null) {{ sumW_a1 += f.pct * f.a1; totW  += f.pct; }}
-      if (f.a3 != null) {{ sumW_a3 += f.pct * f.a3; totW3 += f.pct; }}
+      const w = actualAllocs[rank] || 0;
+      if (f.a1 != null && w > 0) {{ sumW_a1 += w * f.a1; totW  += w; }}
+      if (f.a3 != null && w > 0) {{ sumW_a3 += w * f.a3; totW3 += w; }}
     }});
     if (totW  === 0) totW  = 100;
     if (totW3 === 0) totW3 = 100;

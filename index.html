@@ -3430,18 +3430,19 @@ const PersoMgr = (function() {
     }
 
     return `<div class="perso-panel" data-id="${id}">
-      <div class="perso-actions-bar">
-        <button class="perso-action-btn" onclick="PersoMgr.rename('${id}')">✏️ Renommer</button>
-        <button class="perso-action-btn primary" onclick="PersoMgr.openSelector('${id}')">🔍 Modifier les fonds</button>
-        <button class="perso-action-btn" onclick="PersoMgr.duplicate('${id}')">📋 Dupliquer</button>
-        <button class="perso-action-btn danger" onclick="PersoMgr.deletePortfolio('${id}')">🗑️ Supprimer</button>
-      </div>
       ${feCtrl}
       <div style="overflow-x:auto;margin-top:10px">
         <table class="fund-table" style="width:100%">
           <thead><tr>
             <th style="width:24px"></th><th>#</th><th>Fonds</th><th>SRRI</th>
-            <th>YTD</th><th>1 An</th><th>3 Ans</th><th>5 Ans</th><th>Allocation</th>
+            <th colspan="5" style="text-align:right;padding-right:6px">
+              <span style="display:inline-flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+                <button class="perso-action-btn" onclick="PersoMgr.rename('${id}')">✏️ Renommer</button>
+                <button class="perso-action-btn primary" onclick="PersoMgr.openSelector('${id}')">🔍 Modifier les fonds</button>
+                <button class="perso-action-btn" onclick="PersoMgr.duplicate('${id}')">📋 Dupliquer</button>
+                <button class="perso-action-btn danger" onclick="PersoMgr.deletePortfolio('${id}')">🗑️ Supprimer</button>
+              </span>
+            </th>
           </tr></thead>
           <tbody>${tbody}</tbody>
         </table>

@@ -363,8 +363,8 @@ header p{font-size:13px;opacity:.8;margin-top:4px}
 .stat{text-align:center;padding:8px 16px;background:#f7fafc;border-radius:8px;border:1px solid #e2e8f0}
 .stat .val{font-size:20px;font-weight:700;color:#3266ad}
 .stat .lbl{font-size:11px;color:#718096;margin-top:2px}
-.tabs{display:flex;gap:0;padding:0 32px;background:#fff;border-bottom:2px solid #e2e8f0;overflow-x:auto;white-space:nowrap}
-.tab{padding:12px 16px;cursor:pointer;border-bottom:3px solid transparent;font-size:13px;font-weight:500;color:#4a5568;transition:all .2s;flex-shrink:0}
+.tabs{display:flex;gap:0;padding:0 16px;background:#fff;border-bottom:2px solid #e2e8f0;overflow-x:auto;white-space:nowrap;scrollbar-width:thin}
+.tab{padding:10px 12px;cursor:pointer;border-bottom:3px solid transparent;font-size:12px;font-weight:500;color:#4a5568;transition:all .2s;flex-shrink:0}
 .tab:hover{color:#3266ad;background:#f7fafc}
 .tab.active{color:#3266ad;border-bottom-color:#3266ad;font-weight:600}
 .section{display:none;padding:24px 32px}

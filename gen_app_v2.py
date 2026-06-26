@@ -492,6 +492,39 @@ tr.top3 td:first-child{font-weight:700}
 .ftype-5{border-left:3px solid #f97316!important}.ftype-badge-5{background:#ffedd5;color:#9a3412}
 .ftype-6{border-left:3px solid #ef4444!important}.ftype-badge-6{background:#fee2e2;color:#991b1b}
 .ftype-7{border-left:3px solid #8b5cf6!important}.ftype-badge-7{background:#ede9fe;color:#5b21b6}
+.ptf-bar-perso{background:#4a90d9}
+.perso-tab-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:10px 0 14px}
+.perso-tab-btn{padding:5px 14px;border:1.5px solid #e2e8f0;border-radius:20px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;color:#4a5568;transition:all .15s}
+.perso-tab-btn.active{background:#4a90d9;color:#fff;border-color:#4a90d9}
+.perso-tab-btn:hover:not(.active){border-color:#4a90d9;color:#4a90d9}
+.perso-tab-new{padding:5px 14px;border:1.5px dashed #cbd5e0;border-radius:20px;background:transparent;cursor:pointer;font-size:13px;color:#718096}
+.perso-tab-new:hover{border-color:#4a90d9;color:#4a90d9}
+.perso-panel{display:none}
+.perso-panel.active{display:block}
+.perso-actions-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;padding:4px 0}
+.perso-action-btn{padding:5px 12px;border:1px solid #e2e8f0;border-radius:6px;background:#f7fafc;cursor:pointer;font-size:12px;color:#4a5568;font-weight:500}
+.perso-action-btn:hover{background:#edf2f7}
+.perso-action-btn.primary{background:#ebf4ff;border-color:#bee3f8;color:#2b6cb0}
+.perso-action-btn.primary:hover{background:#bee3f8}
+.perso-action-btn.danger{background:#fff5f5;border-color:#fed7d7;color:#c53030}
+.perso-action-btn.danger:hover{background:#fed7d7}
+.perso-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center}
+.perso-modal-overlay.hidden{display:none}
+.perso-modal-box{background:#fff;border-radius:12px;width:min(680px,95vw);max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.perso-modal-header{padding:14px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px}
+.perso-modal-header h3{margin:0;font-size:15px;flex:1}
+.perso-modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#a0aec0;line-height:1}
+.perso-modal-body{overflow-y:auto;padding:10px 14px;flex:1}
+.perso-modal-footer{padding:10px 14px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px}
+.fs-cat-header{font-size:11px;font-weight:700;text-transform:uppercase;color:#a0aec0;letter-spacing:.7px;padding:10px 4px 4px;border-top:1px solid #f0f4f8;margin-top:4px}
+.fs-cat-header:first-child{border-top:none;margin-top:0;padding-top:2px}
+.fs-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:13px}
+.fs-item:hover{background:#f7fafc}
+.fs-item input{flex-shrink:0;width:15px;height:15px;accent-color:#4a90d9;cursor:pointer}
+.fs-name{font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fs-ytd{font-size:12px;font-weight:600;white-space:nowrap;min-width:46px;text-align:right}
+#fs-search-row{margin-bottom:8px;position:sticky;top:0;background:#fff;padding-bottom:4px;z-index:1}
+.perso-empty{text-align:center;padding:32px;color:#a0aec0;font-style:italic;font-size:14px}
 </style>
 </head>
 <body>
@@ -565,6 +598,7 @@ for i, cat in enumerate(CATEGORIES):
     html_parts.append(f'  <div class="tab {active}" onclick="showTab(\'{cat["id"]}\')" id="tab_{cat["id"]}">{cat["label"]} <span style="font-size:11px;opacity:.7">({len(cat["funds"])})</span></div>\n')
 
 html_parts.append('  <div class="tab" onclick="showTab(\'portefeuilles\')" id="tab_portefeuilles">💼 Portefeuilles <span style="font-size:11px;opacity:.7">(3)</span></div>\n')
+html_parts.append('  <div class="tab" onclick="showTab(\'perso\')" id="tab_perso">👤 Perso</div>\n')
 html_parts.append("</div>\n")
 
 # ── Collect all chart data for JS ──────────────────────────────────────────────
@@ -1058,6 +1092,27 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
     html_parts.append('</div>\n')  # end ptf-panel
 
 html_parts.append('</div>\n')  # end sec_portefeuilles
+
+# ── Section Portefeuille Perso ────────────────────────────────────────────────
+html_parts.append('''<div class="section" id="sec_perso">
+  <div class="perso-tab-bar" id="perso-tab-bar"></div>
+  <div id="perso-panels"></div>
+</div>
+
+<div class="perso-modal-overlay hidden" id="perso-modal">
+  <div class="perso-modal-box">
+    <div class="perso-modal-header">
+      <h3>🔍 Sélectionner les fonds</h3>
+      <button class="perso-modal-close" onclick="PersoMgr.closeSelector()">✕</button>
+    </div>
+    <div class="perso-modal-body" id="perso-modal-funds"></div>
+    <div class="perso-modal-footer">
+      <button class="perso-action-btn" onclick="PersoMgr.closeSelector()">Annuler</button>
+      <button class="perso-action-btn primary" onclick="PersoMgr.applySelector()">✓ Valider la sélection</button>
+    </div>
+  </div>
+</div>
+''')
 
 # ── JavaScript ────────────────────────────────────────────────────────────────
 bar_js  = json.dumps(all_bar_charts,  ensure_ascii=False)
@@ -1815,6 +1870,336 @@ function updateFE() {{
 </body>
 </html>
 """)
+
+html_parts.append("""<script>
+/* ===================================================================
+   PersoMgr — Portefeuilles personnels avec persistance localStorage
+   =================================================================== */
+const PersoMgr = (function() {
+  const SK = 'conservateur_perso_v1';
+  const SC = {1:'#3b82f6',2:'#06b6d4',3:'#10b981',4:'#f59e0b',5:'#f97316',6:'#ef4444',7:'#8b5cf6'};
+  const FT = {1:'Monétaire',2:'Oblig. Daté',3:'Obligataire',4:'Flexible',5:'Mixte',6:'Actions',7:'Thématique'};
+  let state = {portfolios:[]};
+  let active = null;
+  let selTarget = null;
+
+  function load() {
+    try { const r = localStorage.getItem(SK); if (r) state = JSON.parse(r); } catch(e) {}
+    if (!state.portfolios || !state.portfolios.length) state.portfolios = [mkNew('Mon Portefeuille 1')];
+    if (!active || !state.portfolios.find(p=>p.id===active)) active = state.portfolios[0].id;
+  }
+
+  function save() {
+    state.portfolios.forEach(p => {
+      const fe = document.getElementById('pfe-slider-'+p.id);
+      const dop = document.getElementById('pdop-slider-'+p.id);
+      if (fe) p.feAlloc = parseInt(fe.value)||30;
+      if (dop) p.dopAlloc = parseInt(dop.value)||0;
+      p.funds.forEach(f => {
+        const ik = isinKey(f.isin);
+        const inp = document.getElementById('perso-inp-'+p.id+'-'+ik);
+        if (inp) f.manualAlloc = inp.value.trim()!=='' ? parseFloat(inp.value) : null;
+        const chk = document.getElementById('perso-chk-'+p.id+'-'+ik);
+        if (chk) f.enabled = chk.checked;
+      });
+    });
+    try { localStorage.setItem(SK, JSON.stringify(state)); } catch(e) {}
+  }
+
+  const genId   = () => 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  const isinKey = s => s.replace(/[^a-zA-Z0-9]/g,'_');
+  const escH    = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const getFund = isin => ALL_FUNDS.find(f=>f.isin===isin)||null;
+  const fmtV    = v => v==null ? '<span style="color:#a0aec0">—</span>'
+    : '<span class="'+(v>=0?'pos':'neg')+'">'+(v>=0?'+':'')+v.toFixed(2).replace('.',',')+'&nbsp;%</span>';
+
+  function mkNew(label) {
+    return {id:genId(), label, feAlloc:30, dopAlloc:0, highEncours:false, funds:[]};
+  }
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
+  function createNew() {
+    const label = prompt('Nom du portefeuille :', 'Mon Portefeuille '+(state.portfolios.length+1));
+    if (!label) return;
+    const p = mkNew(label.trim());
+    state.portfolios.push(p);
+    active = p.id;
+    save(); render();
+    openSelector(p.id);
+  }
+
+  function duplicate(id) {
+    const src = state.portfolios.find(p=>p.id===id); if (!src) return;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = genId(); copy.label = src.label+' (copie)';
+    const idx = state.portfolios.findIndex(p=>p.id===id);
+    state.portfolios.splice(idx+1, 0, copy);
+    active = copy.id;
+    save(); render();
+  }
+
+  function deletePortfolio(id) {
+    if (state.portfolios.length<=1) { alert('Impossible de supprimer le dernier portefeuille.'); return; }
+    if (!confirm('Supprimer ce portefeuille ?')) return;
+    state.portfolios = state.portfolios.filter(p=>p.id!==id);
+    if (active===id) active = state.portfolios[0].id;
+    save(); render();
+  }
+
+  function rename(id) {
+    const p = state.portfolios.find(x=>x.id===id); if (!p) return;
+    const n = prompt('Renommer :', p.label);
+    if (n && n.trim()) { p.label = n.trim(); save(); render(); }
+  }
+
+  function switchTo(id) {
+    active = id;
+    document.querySelectorAll('.perso-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.id===id));
+    document.querySelectorAll('.perso-panel').forEach(p => p.classList.toggle('active', p.dataset.id===id));
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+  function render() { renderTabBar(); renderPanels(); switchTo(active); }
+
+  function renderTabBar() {
+    const bar = document.getElementById('perso-tab-bar'); if (!bar) return;
+    bar.innerHTML = state.portfolios.map(p =>
+      `<button class="perso-tab-btn" data-id="${p.id}" onclick="PersoMgr.switchTo('${p.id}')">${escH(p.label)}</button>`
+    ).join('') + '<button class="perso-tab-new" onclick="PersoMgr.createNew()">＋ Nouveau</button>';
+  }
+
+  function renderPanels() {
+    const c = document.getElementById('perso-panels'); if (!c) return;
+    c.innerHTML = state.portfolios.map(p => buildPanel(p)).join('');
+    state.portfolios.forEach(p => updateAllocs(p.id));
+  }
+
+  function buildPanel(p) {
+    const id = p.id;
+    const feAlloc = p.feAlloc||30, dopAlloc = p.dopAlloc||0;
+    const ucForRate = 100-feAlloc;
+    const taux = _getFERate(ucForRate);
+
+    const feCtrl = `
+      <div class="fe-controls">
+        <div class="fe-ctrl-row">
+          <span class="fe-label">🏦 Fonds en Euros</span>
+          <button class="fe-enc-btn ${!p.highEncours?'active':''}" onclick="PersoMgr.setEncours('${id}',false)">&lt; 150k€</button>
+          <button class="fe-enc-btn ${p.highEncours?'active':''}" onclick="PersoMgr.setEncours('${id}',true)">≥ 150k€</button>
+          <input type="range" class="fe-slider" id="pfe-slider-${id}" min="20" max="49" value="${feAlloc}"
+            oninput="document.getElementById('pfe-val-${id}').textContent=this.value;PersoMgr.updateAllocs('${id}');PersoMgr.save()">
+          <span id="pfe-val-${id}" style="font-size:14px;font-weight:600;min-width:28px;color:#78350f">${feAlloc}</span>%
+          <span id="pfe-taux-${id}" class="fe-taux-display">${taux.toFixed(2).replace('.',',')} %</span>
+          <span id="pfe-tranche-${id}" class="fe-tranche-hint">${_getFETranche(ucForRate)}</span>
+        </div>
+        <div class="fe-ctrl-row" style="border-top:1px solid #e9d5ff">
+          <span class="dop-lbl">💎 DOP</span>
+          <input type="range" class="dop-slider" id="pdop-slider-${id}" min="0" max="30" value="${dopAlloc}"
+            oninput="document.getElementById('pdop-val-${id}').textContent=this.value;PersoMgr.updateAllocs('${id}');PersoMgr.save()">
+          <span id="pdop-val-${id}" style="font-size:14px;font-weight:600;min-width:28px;color:#5b21b6">${dopAlloc}</span>%
+          <span style="font-size:13px;color:#6d28d9;margin-left:8px">Taux fixe <strong>5,00 %</strong>/an</span>
+        </div>
+      </div>`;
+
+    let tbody = '';
+    if (!p.funds.length) {
+      tbody = '<tr><td colspan="9" class="perso-empty">Aucun fonds sélectionné — cliquez sur "Modifier les fonds"</td></tr>';
+    } else {
+      tbody += `<tr class="fe-row">
+        <td></td><td style="font-size:13px;text-align:center">★</td>
+        <td class="fund-name">🏦 Fonds en Euros</td><td>SRRI 1</td>
+        <td id="pfe-ytd-${id}">—</td><td id="pfe-a1-${id}">—</td><td id="pfe-a3-${id}">—</td><td id="pfe-a5-${id}">—</td>
+        <td id="pfe-alloc-${id}"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:${Math.round(feAlloc*2.04)}px"></div><span style="font-size:12px;font-weight:600">${feAlloc}&nbsp;%</span></div></td>
+      </tr>`;
+      tbody += `<tr class="dop-row">
+        <td></td><td style="font-size:13px;text-align:center">★</td>
+        <td class="fund-name">💎 DOP</td><td>SRRI 2</td>
+        <td id="pdop-ytd-${id}">—</td><td id="pdop-a1-${id}">—</td><td id="pdop-a3-${id}">—</td><td id="pdop-a5-${id}">—</td>
+        <td id="pdop-alloc-${id}"><span style="color:#cbd5e0;font-size:12px">—</span></td>
+      </tr>`;
+      p.funds.forEach((fi, idx) => {
+        const fd = getFund(fi.isin); if (!fd) return;
+        const srri=fd.srri||4, sc=SC[srri]||'#94a3b8', ftl=FT[srri]||'';
+        const ik = isinKey(fi.isin);
+        const chkd = fi.enabled===false ? '' : 'checked';
+        const manV = fi.manualAlloc!=null ? fi.manualAlloc : '';
+        tbody += `<tr class="uc-row ftype-${srri}" data-ytd="${fd.ytd??'null'}" data-a1="${fd.a1??'null'}" data-a3="${fd.a3??'null'}" data-a5="${fd.a5??'null'}">
+          <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="perso-chk-${id}-${ik}" ${chkd} onchange="PersoMgr.updateAllocs('${id}');PersoMgr.save()"></td>
+          <td style="font-size:11px;color:#a0aec0">${idx+1}</td>
+          <td class="fund-name">${escH(fd.name)}<span class="ftype-badge ftype-badge-${srri}">${ftl}</span></td>
+          <td style="text-align:center"><span class="srri-badge" style="background:${sc}">${srri}</span></td>
+          <td style="text-align:right">${fmtV(fd.ytd)}</td>
+          <td style="text-align:right">${fmtV(fd.a1)}</td>
+          <td style="text-align:right">${fmtV(fd.a3)}</td>
+          <td style="text-align:right">${fmtV(fd.a5)}</td>
+          <td><div class="alloc-wrap">
+            <div class="ptf-pct-bar">
+              <div class="ptf-mini-bar ptf-bar-perso" id="perso-bar-${id}-${ik}" style="width:30px"></div>
+              <span id="perso-pct-${id}-${ik}" style="font-size:12px;font-weight:600;min-width:28px">—</span>
+            </div>
+            <input type="number" class="manual-alloc" id="perso-inp-${id}-${ik}" min="0" max="100" step="0.5"
+              placeholder="%" value="${manV}" oninput="PersoMgr.updateAllocs('${id}');PersoMgr.save()" title="Allocation manuelle">
+          </div></td>
+        </tr>`;
+      });
+    }
+
+    return `<div class="perso-panel" data-id="${id}">
+      <div class="perso-actions-bar">
+        <button class="perso-action-btn" onclick="PersoMgr.rename('${id}')">✏️ Renommer</button>
+        <button class="perso-action-btn primary" onclick="PersoMgr.openSelector('${id}')">🔍 Modifier les fonds</button>
+        <button class="perso-action-btn" onclick="PersoMgr.duplicate('${id}')">📋 Dupliquer</button>
+        <button class="perso-action-btn danger" onclick="PersoMgr.deletePortfolio('${id}')">🗑️ Supprimer</button>
+      </div>
+      ${feCtrl}
+      <div style="overflow-x:auto;margin-top:10px">
+        <table class="fund-table" style="width:100%">
+          <thead><tr>
+            <th style="width:24px"></th><th>#</th><th>Fonds</th><th>SRRI</th>
+            <th>YTD</th><th>1 An</th><th>3 Ans</th><th>5 Ans</th><th>Allocation</th>
+          </tr></thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  // ── Allocation update ────────────────────────────────────────────────────────
+  function updateAllocs(pid) {
+    const p = state.portfolios.find(x=>x.id===pid); if (!p) return;
+    const feEl  = document.getElementById('pfe-slider-'+pid);
+    const dopEl = document.getElementById('pdop-slider-'+pid);
+    const feAlloc  = feEl  ? parseInt(feEl.value)||30  : p.feAlloc;
+    const dopAlloc = dopEl ? parseInt(dopEl.value)||0  : p.dopAlloc;
+    const ucForRate = 100-feAlloc, ucPct = 100-feAlloc-dopAlloc;
+    const taux = _getFERate(ucForRate);
+    const t=taux/100, DOP=5.0;
+    const now=new Date(), jan1=new Date(now.getFullYear(),0,1);
+    const ytdFr=(now-jan1)/(365*24*3600*1000);
+    const feP={ytd:taux*ytdFr, a1:taux, a3:(Math.pow(1+t,3)-1)*100, a5:(Math.pow(1+t,5)-1)*100};
+    const dopP={ytd:DOP*ytdFr, a1:DOP, a3:DOP*3, a5:DOP*5};
+    const fmt=v=>v==null?'<span class="na">—</span>':'<span class="'+(v>=0?'pos':'neg')+'">'+(v>=0?'+':'')+v.toFixed(2).replace('.',',')+'&nbsp;%</span>';
+
+    const tauxEl=document.getElementById('pfe-taux-'+pid); if(tauxEl) tauxEl.textContent=taux.toFixed(2).replace('.',',')+' %';
+    const trEl=document.getElementById('pfe-tranche-'+pid); if(trEl) trEl.textContent=_getFETranche(ucForRate);
+    ['ytd','a1','a3','a5'].forEach(k=>{const el=document.getElementById('pfe-'+k+'-'+pid);if(el)el.innerHTML=fmt(feP[k]);});
+    const feAlEl=document.getElementById('pfe-alloc-'+pid);
+    if(feAlEl) feAlEl.innerHTML='<div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:'+Math.round(feAlloc*2.04)+'px"></div><span style="font-size:12px;font-weight:600">'+feAlloc+'&nbsp;%</span></div>';
+    ['ytd','a1','a3','a5'].forEach(k=>{const el=document.getElementById('pdop-'+k+'-'+pid);if(el)el.innerHTML=dopAlloc>0?fmt(dopP[k]):'<span class="na">—</span>';});
+    const dopAlEl=document.getElementById('pdop-alloc-'+pid);
+    if(dopAlEl) dopAlEl.innerHTML=dopAlloc>0?'<div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dop" style="width:'+Math.round(dopAlloc*2.04)+'px"></div><span style="font-size:12px;font-weight:600">'+dopAlloc+'&nbsp;%</span></div>':'<span style="color:#cbd5e0;font-size:12px">—</span>';
+
+    if (!p.funds.length) return;
+    let manSum=0, autoCnt=0;
+    const meta={};
+    p.funds.forEach(fi=>{
+      const ik=isinKey(fi.isin);
+      const chk=document.getElementById('perso-chk-'+pid+'-'+ik);
+      const sel=chk?chk.checked:true;
+      const inp=document.getElementById('perso-inp-'+pid+'-'+ik);
+      const raw=inp?inp.value.trim():'';
+      const mv=raw!==''?parseFloat(raw):NaN;
+      const isM=sel&&!isNaN(mv)&&mv>=0;
+      meta[ik]={sel,isM,mv};
+      if(sel){if(isM)manSum+=mv; else autoCnt++;}
+    });
+    const autoSpace=Math.max(0,ucPct-manSum);
+    const overflow=manSum>ucPct;
+    const eachAuto=autoCnt>0?Math.round(autoSpace/autoCnt*10)/10:0;
+
+    p.funds.forEach(fi=>{
+      const ik=isinKey(fi.isin);
+      const {sel,isM,mv}=meta[ik]||{};
+      const chk=document.getElementById('perso-chk-'+pid+'-'+ik);
+      const rowEl=chk?chk.closest('tr'):null;
+      if(rowEl) rowEl.classList.toggle('deselected',!sel);
+      const barEl=document.getElementById('perso-bar-'+pid+'-'+ik);
+      const pctEl=document.getElementById('perso-pct-'+pid+'-'+ik);
+      const inp=document.getElementById('perso-inp-'+pid+'-'+ik);
+      if(inp){inp.classList.toggle('is-manual',!!(sel&&isM&&!overflow));inp.classList.toggle('is-overflow',!!(sel&&isM&&overflow));}
+      if(!sel){if(barEl)barEl.style.width='0px';if(pctEl)pctEl.textContent='—';return;}
+      const newPct=isM?mv:eachAuto;
+      if(barEl) barEl.style.width=Math.round(newPct*3)+'px';
+      if(pctEl) pctEl.textContent=newPct.toFixed(1)+' %';
+    });
+  }
+
+  function setEncours(id, high) {
+    const p=state.portfolios.find(x=>x.id===id); if(p){p.highEncours=high; save();}
+    const panel=document.querySelector('.perso-panel[data-id="'+id+'"]');
+    if(panel) panel.querySelectorAll('.fe-enc-btn').forEach((b,i)=>b.classList.toggle('active',i===(high?1:0)));
+    updateAllocs(id);
+  }
+
+  // ── Sélecteur de fonds ───────────────────────────────────────────────────────
+  function openSelector(pid) {
+    selTarget = pid;
+    const p = state.portfolios.find(x=>x.id===pid); if (!p) return;
+    const sel = new Set(p.funds.map(f=>f.isin));
+    const cats = {};
+    ALL_FUNDS.forEach(f=>{ if(!cats[f.cat_label]) cats[f.cat_label]=[]; cats[f.cat_label].push(f); });
+    let html = '<div id="fs-search-row"><input type="text" id="fs-search" placeholder="Rechercher un fonds..." oninput="PersoMgr.filterSel()" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;box-sizing:border-box"></div>';
+    Object.entries(cats).forEach(([cat,funds])=>{
+      html += '<div class="fs-cat-header">'+escH(cat)+' <span style="opacity:.6">('+funds.length+')</span></div>';
+      funds.forEach(f=>{
+        const chkd=sel.has(f.isin)?'checked':'';
+        const srri=f.srri||4, sc=SC[srri]||'#94a3b8';
+        const ytdTxt=f.ytd!=null?(f.ytd>=0?'+':'')+f.ytd.toFixed(2)+'%':'—';
+        const ytdCls=f.ytd!=null&&f.ytd>=0?'pos':'neg';
+        html += '<label class="fs-item" data-name="'+escH((f.name+(f.mgr||'')).toLowerCase())+'">'
+          +'<input type="checkbox" class="fs-chk" data-isin="'+f.isin+'" '+chkd+'>'
+          +'<span class="fs-name">'+escH(f.name)+'</span>'
+          +'<span class="srri-badge" style="background:'+sc+';margin-left:4px;flex-shrink:0">'+srri+'</span>'
+          +'<span style="font-size:11px;color:#a0aec0;margin-left:6px;flex-shrink:0;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escH(f.mgr||'')+'</span>'
+          +'<span class="fs-ytd '+ytdCls+'">'+ytdTxt+'</span>'
+          +'</label>';
+      });
+    });
+    document.getElementById('perso-modal-funds').innerHTML = html;
+    document.getElementById('perso-modal').classList.remove('hidden');
+    setTimeout(()=>document.getElementById('fs-search')?.focus(), 60);
+  }
+
+  function filterSel() {
+    const q=(document.getElementById('fs-search')?.value||'').toLowerCase();
+    document.querySelectorAll('.fs-item').forEach(el=>{
+      el.style.display=(!q||el.dataset.name.includes(q))?'':'none';
+    });
+    // Show/hide cat headers based on visible items
+    document.querySelectorAll('.fs-cat-header').forEach(h=>{
+      let sib=h.nextElementSibling, visible=false;
+      while(sib && !sib.classList.contains('fs-cat-header')){ if(sib.style.display!=='none') visible=true; sib=sib.nextElementSibling; }
+      h.style.display=visible?'':'none';
+    });
+  }
+
+  function closeSelector() {
+    document.getElementById('perso-modal')?.classList.add('hidden');
+    selTarget = null;
+  }
+
+  function applySelector() {
+    if (!selTarget) return;
+    const p = state.portfolios.find(x=>x.id===selTarget); if (!p) return;
+    const existing={};
+    p.funds.forEach(f=>{ existing[f.isin]={manualAlloc:f.manualAlloc, enabled:f.enabled}; });
+    const checked = Array.from(document.querySelectorAll('.fs-chk:checked')).map(i=>i.dataset.isin);
+    p.funds = checked.map(isin=>({ isin, manualAlloc:existing[isin]?.manualAlloc??null, enabled:existing[isin]?.enabled??true }));
+    closeSelector(); save(); render();
+  }
+
+  function init() { load(); render(); }
+
+  return {init, switchTo, createNew, duplicate, deletePortfolio, rename,
+          openSelector, closeSelector, applySelector, updateAllocs, save, setEncours, filterSel};
+})();
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', ()=>PersoMgr.init());
+} else {
+  PersoMgr.init();
+}
+</script>""")
 
 output = ''.join(html_parts)
 out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')

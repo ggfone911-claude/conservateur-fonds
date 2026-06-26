@@ -135,6 +135,9 @@ _PRICE_PATTERNS = [
 
 # Patterns pour le YTD
 _YTD_PATTERNS = [
+    # Table des performances Boursorama — ligne "FONDS", 1re colonne = "1er JANV."
+    re.compile(r'FONDS\s*</th>\s*<td[^>]*>\s*([-+\d,\.]+)\s*%', re.IGNORECASE | re.DOTALL),
+    # Anciens formats de secours
     re.compile(r'"ytdReturn"\s*:\s*"?([-\d\.]+)"?', re.IGNORECASE),
     re.compile(r'1\s+jan\.?\s*[-–]\s*auj\.?\s*[:\s]+([-\d,\.]+)\s*%', re.IGNORECASE),
     re.compile(r'Depuis\s+le\s+1er\s+jan\.?\s*[:\s]+([-\d,\.]+)\s*%', re.IGNORECASE),

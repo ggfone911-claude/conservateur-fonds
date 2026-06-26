@@ -130,6 +130,14 @@ tr.top3 td:first-child{font-weight:700}
 .chk-fund{width:15px;height:15px;cursor:pointer;accent-color:#4a90d9;flex-shrink:0}
 .uc-row.deselected>td{opacity:0.35}
 .uc-row.deselected .fund-name{text-decoration:line-through;color:#a0aec0}
+.ftype-badge{display:inline-block;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;opacity:0.85;letter-spacing:0.2px}
+.ftype-1{border-left:3px solid #3b82f6!important}.ftype-badge-1{background:#dbeafe;color:#1d4ed8}
+.ftype-2{border-left:3px solid #06b6d4!important}.ftype-badge-2{background:#cffafe;color:#0e7490}
+.ftype-3{border-left:3px solid #10b981!important}.ftype-badge-3{background:#d1fae5;color:#065f46}
+.ftype-4{border-left:3px solid #f59e0b!important}.ftype-badge-4{background:#fef3c7;color:#92400e}
+.ftype-5{border-left:3px solid #f97316!important}.ftype-badge-5{background:#ffedd5;color:#9a3412}
+.ftype-6{border-left:3px solid #ef4444!important}.ftype-badge-6{background:#fee2e2;color:#991b1b}
+.ftype-7{border-left:3px solid #8b5cf6!important}.ftype-badge-7{background:#ede9fe;color:#5b21b6}
 </style>
 </head>
 <body>
@@ -2022,10 +2030,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right" id="dop-a5-pru">—</td>
   <td id="dop-alloc-pru"><span style="color:#cbd5e0;font-size:12px;padding-left:4px">—</span></td>
 </tr>
-<tr class="uc-row" data-pct="15" data-ytd="2.07" data-a1="4.8" data-a3="18.36" data-a5="21.76">
+<tr class="uc-row ftype-3" data-pct="15" data-ytd="2.07" data-a1="4.8" data-a3="18.36" data-a5="21.76">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-1" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">1</td>
-  <td class="fund-name">DNCA Eurose (C)</td>
+  <td class="fund-name">DNCA Eurose (C)<span class="ftype-badge ftype-badge-3">Obligataire</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
   <td style="text-align:right"><span class="pos">+2,07%</span></td>
   <td style="text-align:right"><span class="pos">+4,80%</span></td>
@@ -2033,10 +2041,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+21,76%</span></td>
   <td id="alloc-pru-1"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="20" data-ytd="1.01" data-a1="3.61" data-a3="null" data-a5="null">
+<tr class="uc-row ftype-2" data-pct="20" data-ytd="1.01" data-a1="3.61" data-a3="null" data-a5="null">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-2" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">2</td>
-  <td class="fund-name">Conservateur Horizon 2031 (I)</td>
+  <td class="fund-name">Conservateur Horizon 2031 (I)<span class="ftype-badge ftype-badge-2">Oblig. Daté</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#84cc16">2</span></td>
   <td style="text-align:right"><span class="pos">+1,01%</span></td>
   <td style="text-align:right"><span class="pos">+3,61%</span></td>
@@ -2044,10 +2052,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="na">—</span></td>
   <td id="alloc-pru-2"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:60px"></div><span style="font-size:12px;font-weight:600;min-width:28px">20 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="1.59" data-a1="2.95" data-a3="3.55" data-a5="12.54">
+<tr class="uc-row ftype-3" data-pct="10" data-ytd="1.59" data-a1="2.95" data-a3="3.55" data-a5="12.54">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-3" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">3</td>
-  <td class="fund-name">DNCA Invest Flex Inflation</td>
+  <td class="fund-name">DNCA Invest Flex Inflation<span class="ftype-badge ftype-badge-3">Obligataire</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
   <td style="text-align:right"><span class="pos">+1,59%</span></td>
   <td style="text-align:right"><span class="pos">+2,95%</span></td>
@@ -2055,10 +2063,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+12,54%</span></td>
   <td id="alloc-pru-3"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="0.77" data-a1="2.37" data-a3="13.38" data-a5="11.31">
+<tr class="uc-row ftype-2" data-pct="10" data-ytd="0.77" data-a1="2.37" data-a3="13.38" data-a5="11.31">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-4" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">4</td>
-  <td class="fund-name">Oddo BHF Global Target 2026 (CR)</td>
+  <td class="fund-name">Oddo BHF Global Target 2026 (CR)<span class="ftype-badge ftype-badge-2">Oblig. Daté</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#84cc16">2</span></td>
   <td style="text-align:right"><span class="pos">+0,77%</span></td>
   <td style="text-align:right"><span class="pos">+2,37%</span></td>
@@ -2066,10 +2074,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+11,31%</span></td>
   <td id="alloc-pru-4"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="15" data-ytd="0.93" data-a1="2.27" data-a3="16.45" data-a5="9.94">
+<tr class="uc-row ftype-2" data-pct="15" data-ytd="0.93" data-a1="2.27" data-a3="16.45" data-a5="9.94">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-5" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">5</td>
-  <td class="fund-name">Conservateur Horizon 2027 (I)</td>
+  <td class="fund-name">Conservateur Horizon 2027 (I)<span class="ftype-badge ftype-badge-2">Oblig. Daté</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#84cc16">2</span></td>
   <td style="text-align:right"><span class="pos">+0,93%</span></td>
   <td style="text-align:right"><span class="pos">+2,27%</span></td>
@@ -2077,10 +2085,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+9,94%</span></td>
   <td id="alloc-pru-5"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="0.53" data-a1="2.06" data-a3="12.05" data-a5="9.42">
+<tr class="uc-row ftype-1" data-pct="10" data-ytd="0.53" data-a1="2.06" data-a3="12.05" data-a5="9.42">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-6" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">6</td>
-  <td class="fund-name">TF – Tikehau Short Duration (R)</td>
+  <td class="fund-name">TF – Tikehau Short Duration (R)<span class="ftype-badge ftype-badge-1">Monétaire</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
   <td style="text-align:right"><span class="pos">+0,53%</span></td>
   <td style="text-align:right"><span class="pos">+2,06%</span></td>
@@ -2088,10 +2096,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+9,42%</span></td>
   <td id="alloc-pru-6"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="5" data-ytd="0.66" data-a1="1.99" data-a3="10.47" data-a5="7.49">
+<tr class="uc-row ftype-1" data-pct="5" data-ytd="0.66" data-a1="1.99" data-a3="10.47" data-a5="7.49">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-7" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">7</td>
-  <td class="fund-name">Conservateur Oblig. CT (C)</td>
+  <td class="fund-name">Conservateur Oblig. CT (C)<span class="ftype-badge ftype-badge-1">Monétaire</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
   <td style="text-align:right"><span class="pos">+0,66%</span></td>
   <td style="text-align:right"><span class="pos">+1,99%</span></td>
@@ -2099,10 +2107,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+7,49%</span></td>
   <td id="alloc-pru-7"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="0.88" data-a1="1.96" data-a3="9.37" data-a5="10.38">
+<tr class="uc-row ftype-1" data-pct="10" data-ytd="0.88" data-a1="1.96" data-a3="9.37" data-a5="10.38">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-8" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">8</td>
-  <td class="fund-name">Palatine Monétaire Court Terme (R)</td>
+  <td class="fund-name">Palatine Monétaire Court Terme (R)<span class="ftype-badge ftype-badge-1">Monétaire</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#22c55e">1</span></td>
   <td style="text-align:right"><span class="pos">+0,88%</span></td>
   <td style="text-align:right"><span class="pos">+1,96%</span></td>
@@ -2110,10 +2118,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+10,38%</span></td>
   <td id="alloc-pru-8"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="3" data-ytd="0.28" data-a1="1.39" data-a3="12.18" data-a5="4.44">
+<tr class="uc-row ftype-3" data-pct="3" data-ytd="0.28" data-a1="1.39" data-a3="12.18" data-a5="4.44">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-9" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">9</td>
-  <td class="fund-name">Conservateur Oblig. MT (C)</td>
+  <td class="fund-name">Conservateur Oblig. MT (C)<span class="ftype-badge ftype-badge-3">Obligataire</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
   <td style="text-align:right"><span class="pos">+0,28%</span></td>
   <td style="text-align:right"><span class="pos">+1,39%</span></td>
@@ -2121,10 +2129,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+4,44%</span></td>
   <td id="alloc-pru-9"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-pru" style="width:9px"></div><span style="font-size:12px;font-weight:600;min-width:28px">3 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="2" data-ytd="-0.39" data-a1="1.39" data-a3="12.2" data-a5="5.15">
+<tr class="uc-row ftype-3" data-pct="2" data-ytd="-0.39" data-a1="1.39" data-a3="12.2" data-a5="5.15">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-pru-10" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">10</td>
-  <td class="fund-name">Oddo Sustainable Credit Options (CR)</td>
+  <td class="fund-name">Oddo Sustainable Credit Options (CR)<span class="ftype-badge ftype-badge-3">Obligataire</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
   <td style="text-align:right"><span class="neg">−0,39%</span></td>
   <td style="text-align:right"><span class="pos">+1,39%</span></td>
@@ -2182,10 +2190,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right" id="dop-a5-equ">—</td>
   <td id="dop-alloc-equ"><span style="color:#cbd5e0;font-size:12px;padding-left:4px">—</span></td>
 </tr>
-<tr class="uc-row" data-pct="15" data-ytd="10.12" data-a1="13.87" data-a3="32.52" data-a5="16.55">
+<tr class="uc-row ftype-4" data-pct="15" data-ytd="10.12" data-a1="13.87" data-a3="32.52" data-a5="16.55">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-1" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">1</td>
-  <td class="fund-name">DNCA Invest Convertibles (B)</td>
+  <td class="fund-name">DNCA Invest Convertibles (B)<span class="ftype-badge ftype-badge-4">Flexible</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
   <td style="text-align:right"><span class="pos">+10,12%</span></td>
   <td style="text-align:right"><span class="pos">+13,87%</span></td>
@@ -2193,10 +2201,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+16,55%</span></td>
   <td id="alloc-equ-1"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="-4.94" data-a1="11.52" data-a3="39.66" data-a5="34.94">
+<tr class="uc-row ftype-5" data-pct="10" data-ytd="-4.94" data-a1="11.52" data-a3="39.66" data-a5="34.94">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-2" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">2</td>
-  <td class="fund-name">R-co Valor (C)</td>
+  <td class="fund-name">R-co Valor (C)<span class="ftype-badge ftype-badge-5">Mixte</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f97316">5</span></td>
   <td style="text-align:right"><span class="neg">−4,94%</span></td>
   <td style="text-align:right"><span class="pos">+11,52%</span></td>
@@ -2204,10 +2212,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+34,94%</span></td>
   <td id="alloc-equ-2"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="15" data-ytd="3.82" data-a1="11.3" data-a3="29.54" data-a5="12.47">
+<tr class="uc-row ftype-4" data-pct="15" data-ytd="3.82" data-a1="11.3" data-a3="29.54" data-a5="12.47">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-3" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">3</td>
-  <td class="fund-name">Carmignac Patrimoine (A)</td>
+  <td class="fund-name">Carmignac Patrimoine (A)<span class="ftype-badge ftype-badge-4">Flexible</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
   <td style="text-align:right"><span class="pos">+3,82%</span></td>
   <td style="text-align:right"><span class="pos">+11,30%</span></td>
@@ -2215,10 +2223,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+12,47%</span></td>
   <td id="alloc-equ-3"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="1.16" data-a1="10.28" data-a3="20.34" data-a5="16.39">
+<tr class="uc-row ftype-4" data-pct="10" data-ytd="1.16" data-a1="10.28" data-a3="20.34" data-a5="16.39">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-4" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">4</td>
-  <td class="fund-name">CPR Croissance Réactive (P)</td>
+  <td class="fund-name">CPR Croissance Réactive (P)<span class="ftype-badge ftype-badge-4">Flexible</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
   <td style="text-align:right"><span class="pos">+1,16%</span></td>
   <td style="text-align:right"><span class="pos">+10,28%</span></td>
@@ -2226,10 +2234,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+16,39%</span></td>
   <td id="alloc-equ-4"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="1.28" data-a1="9.16" data-a3="22.4" data-a5="13.49">
+<tr class="uc-row ftype-4" data-pct="10" data-ytd="1.28" data-a1="9.16" data-a3="22.4" data-a5="13.49">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-5" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">5</td>
-  <td class="fund-name">Conservateur Diversifié (C)</td>
+  <td class="fund-name">Conservateur Diversifié (C)<span class="ftype-badge ftype-badge-4">Flexible</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
   <td style="text-align:right"><span class="pos">+1,28%</span></td>
   <td style="text-align:right"><span class="pos">+9,16%</span></td>
@@ -2237,10 +2245,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+13,49%</span></td>
   <td id="alloc-equ-5"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="5.13" data-a1="9.16" data-a3="29.28" data-a5="null">
+<tr class="uc-row ftype-5" data-pct="10" data-ytd="5.13" data-a1="9.16" data-a3="29.28" data-a5="null">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-6" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">6</td>
-  <td class="fund-name">Conservateur Actions Flexibles (C)</td>
+  <td class="fund-name">Conservateur Actions Flexibles (C)<span class="ftype-badge ftype-badge-5">Mixte</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f97316">5</span></td>
   <td style="text-align:right"><span class="pos">+5,13%</span></td>
   <td style="text-align:right"><span class="pos">+9,16%</span></td>
@@ -2248,10 +2256,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="na">—</span></td>
   <td id="alloc-equ-6"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="5" data-ytd="-2.42" data-a1="7.37" data-a3="29.05" data-a5="18.64">
+<tr class="uc-row ftype-5" data-pct="5" data-ytd="-2.42" data-a1="7.37" data-a3="29.05" data-a5="18.64">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-7" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">7</td>
-  <td class="fund-name">R-co Valor Balanced (C)</td>
+  <td class="fund-name">R-co Valor Balanced (C)<span class="ftype-badge ftype-badge-5">Mixte</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f97316">5</span></td>
   <td style="text-align:right"><span class="neg">−2,42%</span></td>
   <td style="text-align:right"><span class="pos">+7,37%</span></td>
@@ -2259,10 +2267,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+18,64%</span></td>
   <td id="alloc-equ-7"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="3.5" data-a1="5.04" data-a3="21.43" data-a5="15.88">
+<tr class="uc-row ftype-4" data-pct="10" data-ytd="3.5" data-a1="5.04" data-a3="21.43" data-a5="15.88">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-8" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">8</td>
-  <td class="fund-name">Congrégation Investissement (C)</td>
+  <td class="fund-name">Congrégation Investissement (C)<span class="ftype-badge ftype-badge-4">Flexible</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
   <td style="text-align:right"><span class="pos">+3,50%</span></td>
   <td style="text-align:right"><span class="pos">+5,04%</span></td>
@@ -2270,10 +2278,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+15,88%</span></td>
   <td id="alloc-equ-8"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="2.07" data-a1="4.8" data-a3="18.36" data-a5="21.76">
+<tr class="uc-row ftype-3" data-pct="10" data-ytd="2.07" data-a1="4.8" data-a3="18.36" data-a5="21.76">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-9" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">9</td>
-  <td class="fund-name">DNCA Eurose (C)</td>
+  <td class="fund-name">DNCA Eurose (C)<span class="ftype-badge ftype-badge-3">Obligataire</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#eab308">3</span></td>
   <td style="text-align:right"><span class="pos">+2,07%</span></td>
   <td style="text-align:right"><span class="pos">+4,80%</span></td>
@@ -2281,10 +2289,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+21,76%</span></td>
   <td id="alloc-equ-9"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-equ" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="5" data-ytd="1.01" data-a1="3.61" data-a3="null" data-a5="null">
+<tr class="uc-row ftype-2" data-pct="5" data-ytd="1.01" data-a1="3.61" data-a3="null" data-a5="null">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-equ-10" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">10</td>
-  <td class="fund-name">Conservateur Horizon 2031 (I)</td>
+  <td class="fund-name">Conservateur Horizon 2031 (I)<span class="ftype-badge ftype-badge-2">Oblig. Daté</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#84cc16">2</span></td>
   <td style="text-align:right"><span class="pos">+1,01%</span></td>
   <td style="text-align:right"><span class="pos">+3,61%</span></td>
@@ -2342,10 +2350,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right" id="dop-a5-dyn">—</td>
   <td id="dop-alloc-dyn"><span style="color:#cbd5e0;font-size:12px;padding-left:4px">—</span></td>
 </tr>
-<tr class="uc-row" data-pct="5" data-ytd="37.29" data-a1="67.47" data-a3="78.55" data-a5="90.93">
+<tr class="uc-row ftype-7" data-pct="5" data-ytd="37.29" data-a1="67.47" data-a3="78.55" data-a5="90.93">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-1" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">1</td>
-  <td class="fund-name">Pictet Clean Energy Transition (P)</td>
+  <td class="fund-name">Pictet Clean Energy Transition (P)<span class="ftype-badge ftype-badge-7">Thématique</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#991b1b">7</span></td>
   <td style="text-align:right"><span class="pos">+37,29%</span></td>
   <td style="text-align:right"><span class="pos">+67,47%</span></td>
@@ -2353,10 +2361,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+90,93%</span></td>
   <td id="alloc-dyn-1"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="24.37" data-a1="49.19" data-a3="55.35" data-a5="12.2">
+<tr class="uc-row ftype-6" data-pct="10" data-ytd="24.37" data-a1="49.19" data-a3="55.35" data-a5="12.2">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-2" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">2</td>
-  <td class="fund-name">Magellan (C)</td>
+  <td class="fund-name">Magellan (C)<span class="ftype-badge ftype-badge-6">Actions</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
   <td style="text-align:right"><span class="pos">+24,37%</span></td>
   <td style="text-align:right"><span class="pos">+49,19%</span></td>
@@ -2364,10 +2372,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+12,20%</span></td>
   <td id="alloc-dyn-2"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="15" data-ytd="24.11" data-a1="47.31" data-a3="122.88" data-a5="60.75">
+<tr class="uc-row ftype-7" data-pct="15" data-ytd="24.11" data-a1="47.31" data-a3="122.88" data-a5="60.75">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-3" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">3</td>
-  <td class="fund-name">Echiquier Artificial Intelligence (B)</td>
+  <td class="fund-name">Echiquier Artificial Intelligence (B)<span class="ftype-badge ftype-badge-7">Thématique</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#991b1b">7</span></td>
   <td style="text-align:right"><span class="pos">+24,11%</span></td>
   <td style="text-align:right"><span class="pos">+47,31%</span></td>
@@ -2375,10 +2383,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+60,75%</span></td>
   <td id="alloc-dyn-3"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="15" data-ytd="10.55" data-a1="32.95" data-a3="82.25" data-a5="58.21">
+<tr class="uc-row ftype-6" data-pct="15" data-ytd="10.55" data-a1="32.95" data-a3="82.25" data-a5="58.21">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-4" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">4</td>
-  <td class="fund-name">Carmignac Investissement (A)</td>
+  <td class="fund-name">Carmignac Investissement (A)<span class="ftype-badge ftype-badge-6">Actions</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
   <td style="text-align:right"><span class="pos">+10,55%</span></td>
   <td style="text-align:right"><span class="pos">+32,95%</span></td>
@@ -2386,10 +2394,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+58,21%</span></td>
   <td id="alloc-dyn-4"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="15" data-ytd="10.19" data-a1="23.56" data-a3="56.45" data-a5="58.77">
+<tr class="uc-row ftype-6" data-pct="15" data-ytd="10.19" data-a1="23.56" data-a3="56.45" data-a5="58.77">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-5" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">5</td>
-  <td class="fund-name">FF – World Fund (A)</td>
+  <td class="fund-name">FF – World Fund (A)<span class="ftype-badge ftype-badge-6">Actions</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
   <td style="text-align:right"><span class="pos">+10,19%</span></td>
   <td style="text-align:right"><span class="pos">+23,56%</span></td>
@@ -2397,10 +2405,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+58,77%</span></td>
   <td id="alloc-dyn-5"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:45px"></div><span style="font-size:12px;font-weight:600;min-width:28px">15 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="5" data-ytd="8.12" data-a1="15.88" data-a3="38.41" data-a5="23.84">
+<tr class="uc-row ftype-6" data-pct="5" data-ytd="8.12" data-a1="15.88" data-a3="38.41" data-a5="23.84">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-6" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">6</td>
-  <td class="fund-name">EdR Fund – Big Data (A)</td>
+  <td class="fund-name">EdR Fund – Big Data (A)<span class="ftype-badge ftype-badge-6">Actions</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
   <td style="text-align:right"><span class="pos">+8,12%</span></td>
   <td style="text-align:right"><span class="pos">+15,88%</span></td>
@@ -2408,10 +2416,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+23,84%</span></td>
   <td id="alloc-dyn-6"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:15px"></div><span style="font-size:12px;font-weight:600;min-width:28px">5 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="8.13" data-a1="15.26" data-a3="44.08" data-a5="25.25">
+<tr class="uc-row ftype-6" data-pct="10" data-ytd="8.13" data-a1="15.26" data-a3="44.08" data-a5="25.25">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-7" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">7</td>
-  <td class="fund-name">Conservateur Actions Monde (C)</td>
+  <td class="fund-name">Conservateur Actions Monde (C)<span class="ftype-badge ftype-badge-6">Actions</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
   <td style="text-align:right"><span class="pos">+8,13%</span></td>
   <td style="text-align:right"><span class="pos">+15,26%</span></td>
@@ -2419,10 +2427,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+25,25%</span></td>
   <td id="alloc-dyn-7"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="9.8" data-a1="14.09" data-a3="41.08" data-a5="39.97">
+<tr class="uc-row ftype-6" data-pct="10" data-ytd="9.8" data-a1="14.09" data-a3="41.08" data-a5="39.97">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-8" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">8</td>
-  <td class="fund-name">OFI Croiss. Durable &amp; Solidaire (C)</td>
+  <td class="fund-name">OFI Croiss. Durable &amp; Solidaire (C)<span class="ftype-badge ftype-badge-6">Actions</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
   <td style="text-align:right"><span class="pos">+9,80%</span></td>
   <td style="text-align:right"><span class="pos">+14,09%</span></td>
@@ -2430,10 +2438,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+39,97%</span></td>
   <td id="alloc-dyn-8"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="10" data-ytd="10.12" data-a1="13.87" data-a3="32.52" data-a5="16.55">
+<tr class="uc-row ftype-4" data-pct="10" data-ytd="10.12" data-a1="13.87" data-a3="32.52" data-a5="16.55">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-9" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">9</td>
-  <td class="fund-name">DNCA Invest Convertibles (B)</td>
+  <td class="fund-name">DNCA Invest Convertibles (B)<span class="ftype-badge ftype-badge-4">Flexible</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#f59e0b">4</span></td>
   <td style="text-align:right"><span class="pos">+10,12%</span></td>
   <td style="text-align:right"><span class="pos">+13,87%</span></td>
@@ -2441,10 +2449,10 @@ tr.top3 td:first-child{font-weight:700}
   <td style="text-align:right"><span class="pos">+16,55%</span></td>
   <td id="alloc-dyn-9"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-dyn" style="width:30px"></div><span style="font-size:12px;font-weight:600;min-width:28px">10 %</span></div></td>
 </tr>
-<tr class="uc-row" data-pct="5" data-ytd="9.46" data-a1="13.61" data-a3="34.41" data-a5="54.99">
+<tr class="uc-row ftype-6" data-pct="5" data-ytd="9.46" data-a1="13.61" data-a3="34.41" data-a5="54.99">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-dyn-10" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">10</td>
-  <td class="fund-name">Centifolia (C)</td>
+  <td class="fund-name">Centifolia (C)<span class="ftype-badge ftype-badge-6">Actions</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:#ef4444">6</span></td>
   <td style="text-align:right"><span class="pos">+9,46%</span></td>
   <td style="text-align:right"><span class="pos">+13,61%</span></td>

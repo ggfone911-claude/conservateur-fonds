@@ -478,6 +478,14 @@ tr.top3 td:first-child{font-weight:700}
 .chk-fund{width:15px;height:15px;cursor:pointer;accent-color:#4a90d9;flex-shrink:0}
 .uc-row.deselected>td{opacity:0.35}
 .uc-row.deselected .fund-name{text-decoration:line-through;color:#a0aec0}
+.ftype-badge{display:inline-block;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;opacity:0.85;letter-spacing:0.2px}
+.ftype-1{border-left:3px solid #3b82f6!important}.ftype-badge-1{background:#dbeafe;color:#1d4ed8}
+.ftype-2{border-left:3px solid #06b6d4!important}.ftype-badge-2{background:#cffafe;color:#0e7490}
+.ftype-3{border-left:3px solid #10b981!important}.ftype-badge-3{background:#d1fae5;color:#065f46}
+.ftype-4{border-left:3px solid #f59e0b!important}.ftype-badge-4{background:#fef3c7;color:#92400e}
+.ftype-5{border-left:3px solid #f97316!important}.ftype-badge-5{background:#ffedd5;color:#9a3412}
+.ftype-6{border-left:3px solid #ef4444!important}.ftype-badge-6{background:#fee2e2;color:#991b1b}
+.ftype-7{border-left:3px solid #8b5cf6!important}.ftype-badge-7{background:#ede9fe;color:#5b21b6}
 </style>
 </head>
 <body>
@@ -881,6 +889,8 @@ for _ptf in _PORTFOLIOS_DATA:
     _sorted = sorted(_ptf["funds"], key=_a1_sort_key, reverse=True)
     _ptf["funds"] = [(i+1,) + f[1:] for i, f in enumerate(_sorted)]
 
+_FTYPE_LABELS = {1: "Monétaire", 2: "Oblig. Daté", 3: "Obligataire", 4: "Flexible", 5: "Mixte", 6: "Actions", 7: "Thématique"}
+
 def _ptf_perf(v):
     if v == "—":
         return '<span class="na">—</span>'
@@ -1024,10 +1034,11 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
         _ytd_f = _parse_pct(ytd); _a1_f = _parse_pct(a1)
         _a3_f  = _parse_pct(a3);  _a5_f = _parse_pct(a5)
         def _dv(v): return str(v) if v is not None else "null"
-        html_parts.append(f'''<tr class="uc-row" data-pct="{pct}" data-ytd="{_dv(_ytd_f)}" data-a1="{_dv(_a1_f)}" data-a3="{_dv(_a3_f)}" data-a5="{_dv(_a5_f)}">
+        _ftype_lbl = _FTYPE_LABELS.get(srri, "")
+        html_parts.append(f'''<tr class="uc-row ftype-{srri}" data-pct="{pct}" data-ytd="{_dv(_ytd_f)}" data-a1="{_dv(_a1_f)}" data-a3="{_dv(_a3_f)}" data-a5="{_dv(_a5_f)}">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-{cc}-{rank}" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">{rank}</td>
-  <td class="fund-name">{name}</td>
+  <td class="fund-name">{name}<span class="ftype-badge ftype-badge-{srri}">{_ftype_lbl}</span></td>
   <td style="text-align:center"><span class="srri-badge" style="background:{sc}">{srri}</span></td>
   <td style="text-align:right">{_ptf_perf(ytd)}</td>
   <td style="text-align:right">{_ptf_perf(a1)}</td>

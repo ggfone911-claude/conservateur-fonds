@@ -278,7 +278,6 @@ CATEGORIES = [
     {"isin":"LU0528228074","name":"FF - Sustainable Demographics Fund (A)","mgr":"Fidelity AM","vl":32.61,"ytd":3.52,"srri":6},
     {"isin":"LU1892829828","name":"FF - Sustainable Water & Waste Fund (A)","mgr":"Fidelity AM","vl":14.78,"ytd":1.86,"srri":6},
     {"isin":"LU1653748860","name":"CPR Invest - Food For Generations (A)","mgr":"CPR AM","vl":121.33,"ytd":2.04,"srri":6},
-    {"isin":"FR0013367265","name":"R-co Valor Balanced (C)","mgr":"Rothschild et Cie Gestion","vl":146.47,"ytd":-2.42,"srri":5},
     {"isin":"FR0012844140","name":"CPR Global Silver Age (E)","mgr":"CPR AM","vl":129.67,"ytd":-2.08,"srri":6},
     {"isin":"LU1160365091","name":"EdR Fund - China (A)","mgr":"Edmond de Rothschild AM","vl":303.84,"ytd":-10.26,"srri":7},
     {"isin":"LU0366534344","name":"Pictet - Nutrition (P)","mgr":"Pictet AM Europe","vl":206.20,"ytd":-2.49,"srri":6},
@@ -896,7 +895,6 @@ _PORTFOLIOS_DATA = [
             (7, "Congrégation Investissement (C)", 4, "+3,50%", "+5,04%", "+21,43%", "+15,88%", 10),
             (8, "R-co Valor (C)", 5, "−4,94%", "+11,52%", "+39,66%", "+34,94%", 10),
             (9, "Conservateur Actions Flexibles (C)", 5, "+5,13%", "+9,16%", "+29,28%", "—", 10),
-            (10, "R-co Valor Balanced (C)", 5, "−2,42%", "+7,37%", "+29,05%", "+18,64%", 5),
         ]
     },
     {

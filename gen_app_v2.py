@@ -369,7 +369,7 @@ header p{font-size:13px;opacity:.8;margin-top:4px}
 .tab{padding:10px 12px;cursor:pointer;border-bottom:3px solid transparent;font-size:12px;font-weight:500;color:#4a5568;transition:all .2s;flex-shrink:0}
 .tab:hover{color:#3266ad;background:#f7fafc}
 .tab.active{color:#3266ad;border-bottom-color:#3266ad;font-weight:600}
-.section{display:none;padding:24px 32px}
+.section{display:none;padding:24px 32px;overflow:hidden}
 .section.active{display:block}
 .cat-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
 .cat-header h2{font-size:18px;font-weight:700;color:#1a202c}
@@ -382,7 +382,8 @@ header p{font-size:13px;opacity:.8;margin-top:4px}
 .fund-card .fmgr{font-size:11px;color:#718096;margin-bottom:8px}
 .fund-card .fytd{font-size:22px;font-weight:700}
 .fund-card .fisin{font-size:10px;color:#a0aec0;margin-top:4px}
-.chart-wrap{background:#fff;border-radius:10px;padding:16px;margin-bottom:24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.chart-wrap{background:#fff;border-radius:10px;padding:16px;margin-bottom:24px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden;min-width:0}
+.chart-wrap canvas{max-width:100%;display:block}
 .chart-wrap h3{font-size:14px;font-weight:600;color:#4a5568;margin-bottom:4px}
 .chart-wrap .chart-sub{font-size:11px;color:#a0aec0;margin-bottom:12px}
 .charts-row{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:24px}

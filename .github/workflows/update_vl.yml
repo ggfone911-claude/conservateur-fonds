@@ -23,32 +23,141 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Scraping des VL sur Boursorama
-        run: python scraper.py
-        continue-on-error: true
+      - name: Horodatage de debut
+        id: start
+        run: echo "ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
-      - name: Verification du fichier genere
+      # PAS de continue-on-error : un scraping muet a fige le site du 09/07
+      # au 08/09/2026 sans qu'aucun run n'apparaisse en echec.
+      - name: Scraping des VL et des performances sur Boursorama
+        id: scraping
+        run: python scraper.py
+
+      - name: Controle de fraicheur des donnees
+        id: fraicheur
         run: |
-          if [ -f vl_overrides.json ]; then
-            echo "OK vl_overrides.json genere"
-            python -c "import json; d=json.load(open('vl_overrides.json')); print(f'{len(d)} fonds scrapes')"
-          else
-            echo "WARN vl_overrides.json absent"
-          fi
+          python - <<'PY'
+          import datetime, json, sys
+          ov = json.load(open('vl_overrides.json'))
+          bp = json.load(open('bourso_perf.json'))
+          dates = sorted(v['date'] for v in ov.values() if v.get('date'))
+          if not dates:
+              print('ECHEC : aucune date de VL'); sys.exit(1)
+          newest = datetime.date.fromisoformat(dates[-1])
+          age = (datetime.date.today() - newest).days
+          print(f"{len(ov)} fonds | VL la plus recente {newest} ({age} j) "
+                f"| perfs {len(bp['data'])} fonds au {bp['last_updated']}")
+          if age > 8:
+              print('ECHEC : donnees perimees'); sys.exit(1)
+          PY
 
       - name: Regeneration de index.html
+        id: gen
         run: python gen_app_v2.py
 
-      - name: Commit et push si changements
+      # Ecrit pipeline_status.json A CHAQUE RUN, succes comme echec.
+      # C'est ce qui rend un echec lisible depuis l'exterieur sans ouvrir
+      # l'onglet Actions (api.github.com et les pages HTML de github.com
+      # sont bloquees depuis l'environnement du controle quotidien).
+      - name: Ecriture du statut du pipeline
+        if: always()
+        env:
+          START_TS: ${{ steps.start.outputs.ts }}
+          OUT_SCRAPING: ${{ steps.scraping.outcome }}
+          OUT_FRAICHEUR: ${{ steps.fraicheur.outcome }}
+          OUT_GEN: ${{ steps.gen.outcome }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import datetime, json, os
+
+          PATH = 'pipeline_status.json'
+          try:
+              status = json.load(open(PATH))
+          except Exception:
+              status = {}
+          if not isinstance(status, dict):
+              status = {}
+          prev = status.get('daily') or {}
+
+          etapes = [('scraping',  os.environ.get('OUT_SCRAPING', '')),
+                    ('fraicheur', os.environ.get('OUT_FRAICHEUR', '')),
+                    ('gen_app',   os.environ.get('OUT_GEN', ''))]
+          echecs = [n for n, o in etapes if o == 'failure']
+          sautees = [n for n, o in etapes if o in ('skipped', '')]
+          ok = not echecs and not sautees
+
+          now = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+          run_id = os.environ.get('RUN_ID', '')
+          entry = {
+              'status': 'success' if ok else 'failure',
+              'run_started': os.environ.get('START_TS', ''),
+              'run_finished': now,
+              'run_id': run_id,
+              'run_number': os.environ.get('RUN_NUMBER', ''),
+              'run_url': 'https://github.com/%s/actions/runs/%s' % (os.environ.get('REPO', ''), run_id),
+              'etapes': dict(etapes),
+              'etapes_en_echec': echecs,
+              'etapes_sautees': sautees,
+              'last_success': now if ok else prev.get('last_success'),
+          }
+
+          # Temoins de donnees, best effort : ne doivent jamais faire echouer l'etape.
+          try:
+              ov = json.load(open('vl_overrides.json'))
+              dates = sorted(v['date'] for v in ov.values() if v.get('date'))
+              entry['fonds'] = len(ov)
+              entry['vl_plus_recente'] = dates[-1] if dates else None
+          except Exception as e:
+              entry['vl_plus_recente'] = None
+              entry['lecture_vl_overrides'] = 'illisible: %s' % e
+          try:
+              bp = json.load(open('bourso_perf.json'))
+              entry['perf_last_updated'] = bp.get('last_updated')
+              f = (bp.get('data') or {}).get('FR0013287315') or {}
+              entry['temoin_FR0013287315'] = {
+                  'vl': f.get('vl'),
+                  'a1': (f.get('eom') or {}).get('a1'),
+                  'a5': (f.get('eom') or {}).get('a5'),
+              }
+          except Exception as e:
+              entry['perf_last_updated'] = None
+              entry['lecture_bourso_perf'] = 'illisible: %s' % e
+
+          status['daily'] = entry
+          with open(PATH, 'w') as fh:
+              json.dump(status, fh, ensure_ascii=False, indent=2, sort_keys=True)
+              fh.write('\n')
+          print(json.dumps(entry, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Commit et push
+        if: always()
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
+
+          if [ "${{ job.status }}" = "success" ]; then
+            git add -A
+            MSG="Mise a jour VL Boursorama - $(date '+%d/%m/%Y %H:%M')"
+          else
+            # Une etape a echoue : on ne publie QUE le statut, jamais des
+            # donnees partielles qui ecraseraient des VL correctes.
+            if [ -f pipeline_status.json ]; then cp pipeline_status.json /tmp/pipeline_status.json; fi
+            git checkout -- . 2>/dev/null || true
+            git clean -fd 2>/dev/null || true
+            if [ -f /tmp/pipeline_status.json ]; then cp /tmp/pipeline_status.json pipeline_status.json; fi
+            git add pipeline_status.json 2>/dev/null || true
+            MSG="ECHEC pipeline quotidien - $(date '+%d/%m/%Y %H:%M')"
+          fi
+
           if git diff --staged --quiet; then
             echo "Aucun changement detecte - pas de commit"
           else
-            DATE=$(date '+%d/%m/%Y %H:%M')
-            git commit -m "Mise a jour VL Boursorama - ${DATE}"
+            git commit -m "${MSG}"
+            git pull --rebase origin main || true
             git push
-            echo "Deploye sur GitHub Pages"
+            echo "Pousse : ${MSG}"
           fi

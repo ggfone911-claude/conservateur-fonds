@@ -22,33 +22,123 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Scraping historique mensuel Boursorama
-        run: python scraper_monthly.py
-        continue-on-error: true
+      - name: Horodatage de debut
+        id: start
+        run: echo "ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
+      # PAS de continue-on-error : le script conserve deja les donnees
+      # existantes fonds par fonds, mais un echec global doit se voir.
+      - name: Scraping historique mensuel Boursorama (5 ans)
+        id: scraping
+        run: python scraper_monthly.py
+
+      # Anciennement un simple WARN : l'absence du fichier passait inapercue.
       - name: Verification du fichier genere
+        id: verif
         run: |
-          if [ -f historical_monthly.json ]; then
-            echo "OK historical_monthly.json present"
-            python -c "import json; d=json.load(open('historical_monthly.json')); fonds=d.get('data',{}); print(str(len(fonds))+' fonds, '+str(sum(len(v) for v in fonds.values()))+' points')"
-          else
-            echo "WARN historical_monthly.json absent"
-          fi
+          python - <<'PY'
+          import json, os, sys
+          if not os.path.exists('historical_monthly.json'):
+              print('ECHEC : historical_monthly.json absent'); sys.exit(1)
+          d = json.load(open('historical_monthly.json'))
+          fonds = d.get('data', {})
+          points = sum(len(v) for v in fonds.values())
+          print('%d fonds, %d points, last_updated=%s' % (len(fonds), points, d.get('last_updated')))
+          if not fonds or points == 0:
+              print('ECHEC : historique vide'); sys.exit(1)
+          PY
 
       - name: Regeneration de index.html
+        id: gen
         run: python gen_app_v2.py
 
+      # Meme logique que le workflow quotidien : le statut est ecrit et pousse
+      # meme en echec, pour que le controle exterieur puisse le lire en raw.
+      - name: Ecriture du statut du pipeline
+        if: always()
+        env:
+          START_TS: ${{ steps.start.outputs.ts }}
+          OUT_SCRAPING: ${{ steps.scraping.outcome }}
+          OUT_VERIF: ${{ steps.verif.outcome }}
+          OUT_GEN: ${{ steps.gen.outcome }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import datetime, json, os
+
+          PATH = 'pipeline_status.json'
+          try:
+              status = json.load(open(PATH))
+          except Exception:
+              status = {}
+          if not isinstance(status, dict):
+              status = {}
+          prev = status.get('monthly') or {}
+
+          etapes = [('scraping', os.environ.get('OUT_SCRAPING', '')),
+                    ('verif',    os.environ.get('OUT_VERIF', '')),
+                    ('gen_app',  os.environ.get('OUT_GEN', ''))]
+          echecs = [n for n, o in etapes if o == 'failure']
+          sautees = [n for n, o in etapes if o in ('skipped', '')]
+          ok = not echecs and not sautees
+
+          now = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+          run_id = os.environ.get('RUN_ID', '')
+          entry = {
+              'status': 'success' if ok else 'failure',
+              'run_started': os.environ.get('START_TS', ''),
+              'run_finished': now,
+              'run_id': run_id,
+              'run_number': os.environ.get('RUN_NUMBER', ''),
+              'run_url': 'https://github.com/%s/actions/runs/%s' % (os.environ.get('REPO', ''), run_id),
+              'etapes': dict(etapes),
+              'etapes_en_echec': echecs,
+              'etapes_sautees': sautees,
+              'last_success': now if ok else prev.get('last_success'),
+          }
+
+          try:
+              h = json.load(open('historical_monthly.json'))
+              fonds = h.get('data', {})
+              entry['historical_last_updated'] = h.get('last_updated')
+              entry['fonds'] = len(fonds)
+              entry['points'] = sum(len(v) for v in fonds.values())
+          except Exception as e:
+              entry['historical_last_updated'] = None
+              entry['lecture_historical'] = 'illisible: %s' % e
+
+          status['monthly'] = entry
+          with open(PATH, 'w') as fh:
+              json.dump(status, fh, ensure_ascii=False, indent=2, sort_keys=True)
+              fh.write('\n')
+          print(json.dumps(entry, ensure_ascii=False, indent=2))
+          PY
+
       - name: Commit et push
+        if: always()
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
+
+          if [ "${{ job.status }}" = "success" ]; then
+            git add -A
+            MSG="Historique mensuel VL - $(date '+%d/%m/%Y')"
+          else
+            if [ -f pipeline_status.json ]; then cp pipeline_status.json /tmp/pipeline_status.json; fi
+            git checkout -- . 2>/dev/null || true
+            git clean -fd 2>/dev/null || true
+            if [ -f /tmp/pipeline_status.json ]; then cp /tmp/pipeline_status.json pipeline_status.json; fi
+            git add pipeline_status.json 2>/dev/null || true
+            MSG="ECHEC pipeline mensuel - $(date '+%d/%m/%Y')"
+          fi
+
           if git diff --staged --quiet; then
             echo "Aucun changement - pas de commit"
           else
-            DATE=$(date '+%d/%m/%Y')
-            git commit -m "Historique mensuel VL - ${DATE}"
-            git pull --rebase origin main
+            git commit -m "${MSG}"
+            git pull --rebase origin main || true
             git push
-            echo "Deploye"
+            echo "Pousse : ${MSG}"
           fi

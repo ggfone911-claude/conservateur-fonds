@@ -357,15 +357,15 @@ for cat in CATEGORIES:
             f["perf_gli"] = {k: bp.get("gli", {}).get(k) for k in _KEYS}
             if bp.get("date"):
                 f["vl_date"] = bp["date"]
-        elif b:
-            # Repli : valeurs figées dans le code (une seule convention connue)
-            _fallback = {"ytd": b.get("ytd_b"), "m1": b["m1"], "m6": b["m6"],
-                         "a1": b["a1"], "a3": b["a3"], "a5": b["a5"]}
-            f["perf_eom"] = dict(_fallback)
-            f["perf_gli"] = dict(_fallback)
         else:
+            # PAS de repli sur les valeurs figees du code (releve du 12/05/2026).
+            # Un chiffre faux est pire qu'une cellule vide : c'est ce repli
+            # silencieux qui a fait afficher +3,92 % a DNCA Convertibles au lieu
+            # de -1,16 %, et +1,37 % a Eurose au lieu de -0,12 %.
             f["perf_eom"] = {k: None for k in _KEYS}
             f["perf_gli"] = {k: None for k in _KEYS}
+            f["ytd"] = None
+            f["vl"]  = None
         # Jeu actif rendu côté serveur (bascule côté client ensuite)
         for _k in ("m1", "m6", "a1", "a3", "a5"):
             f[_k] = f["perf_eom"][_k]

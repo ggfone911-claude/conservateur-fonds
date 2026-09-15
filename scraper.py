@@ -1,21 +1,33 @@
 #!/usr/bin/env python3
 """
-scraper.py — Récupère les VL (valeurs liquidatives) sur Boursorama pour tous les fonds.
-Génère vl_overrides.json avec { ISIN: { "vl": float, "ytd": float, "date": "YYYY-MM-DD" } }
+scraper.py — Releve quotidien Boursorama pour tous les fonds du site.
 
-Usage local  : python3 scraper.py
-GitHub Action: python3 scraper.py  (même commande)
+Produit DEUX fichiers :
+  • bourso_perf.json  { last_updated, source, data: { ISIN: {bid, vl, date,
+                        eom:{ytd,m1,m6,a1,a3,a5,a10}, gli:{...}} } }
+  • vl_overrides.json { ISIN: {vl, ytd, ytd_gli, date} }
+
+Les deux conventions Boursorama sont conservees :
+  eom = onglet « A LA FIN DE MOIS »  (arrete a la derniere VL du mois precedent)
+  gli = onglet « GLISSANTES »        (arrete a la derniere VL connue)
+
+Le script REND UN CODE DE SORTIE NON NUL si le releve est vide, trop partiel,
+ou si la VL la plus recente est trop ancienne. Le workflow ne doit donc PAS
+utiliser continue-on-error : un echec silencieux a fige le site deux mois.
+
+Usage : python3 scraper.py
 """
 
+import datetime
+import gzip
 import json
 import re
+import sys
 import time
-import datetime
-import urllib.request
 import urllib.error
+import urllib.request
 
-# ── Liste des fonds à scraper ────────────────────────────────────────────────
-# (ISIN, Boursorama ID)
+# ── Liste des fonds a relever (ISIN, identifiant Boursorama) ────────────────
 FUNDS = [
     ("FR0013287315", "0P0001CB5C"),
     ("FR0011461334", "0P0000ZL7R"),
@@ -107,6 +119,7 @@ FUNDS = [
     ("FR0011184191", "0P00015XU4"),
     ("FR0010286013", "MP-805700"),
     ("FR0011253624", "0P00017T6E"),
+    ("FR0013367265", "0P0001F34F"),
 ]
 
 HEADERS = {
@@ -117,112 +130,207 @@ HEADERS = {
     ),
     "Accept-Language": "fr-FR,fr;q=0.9",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Encoding": "gzip, deflate",
 }
 
-# Patterns pour extraire le cours depuis la page Boursorama
-_PRICE_PATTERNS = [
-    # JSON structuré dans la page (le plus fiable)
-    re.compile(r'"currentPrice"\s*:\s*([\d,\.]+)', re.IGNORECASE),
-    re.compile(r'"last"\s*:\s*([\d,\.]+)', re.IGNORECASE),
-    # Balise data-* ou attribut HTML
-    re.compile(r'data-ist-last="([^"]+)"', re.IGNORECASE),
-    re.compile(r'class="[^"]*c-instrument--last[^"]*"[^>]*>\s*([\d\s,\.]+)', re.IGNORECASE),
-    # Regex générique sur le cours affiché
-    re.compile(r'Cours\s*:\s*([\d\s,\.]+)', re.IGNORECASE),
-    re.compile(r'Valeur\s+liquidative\s*[:\s]+([\d\s,\.]+)', re.IGNORECASE),
+# Garde-fous : un run qui ne rapporte rien doit ECHOUER bruyamment.
+MIN_OK_RATIO = 0.60          # part minimale de fonds a recuperer
+MAX_VL_AGE_DAYS = 8          # age maximal tolere pour la VL la plus recente
+
+_TAG_RE   = re.compile(r"<[^>]+>")
+_TABLE_RE = re.compile(r"<table\b.*?</table>", re.I | re.S)
+_THEAD_RE = re.compile(r"<thead\b.*?</thead>", re.I | re.S)
+_TR_RE    = re.compile(r"<tr\b.*?</tr>", re.I | re.S)
+_CELL_RE  = re.compile(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", re.I | re.S)
+_VL_PATTERNS = [
+    re.compile(r"c-instrument--last[^>]*>\s*([\d\s  ,\.]+)", re.I),
+    re.compile(r'data-ist-last="([\d\s  ,\.]+)"', re.I),
+    re.compile(r'"currentPrice"\s*:\s*"?([\d\.,]+)', re.I),
+    re.compile(r'"last"\s*:\s*"?([\d\.,]+)', re.I),
 ]
+_DATE_RE  = re.compile(r"DERNIER COURS CONNU AU\s*(\d{2}[/.]\d{2}[/.]\d{4})", re.I)
 
-# Patterns pour le YTD
-_YTD_PATTERNS = [
-    # Table des performances Boursorama — ligne "FONDS", 1re colonne = "1er JANV."
-    re.compile(r'FONDS\s*</th>\s*<td[^>]*>\s*([-+\d,\.]+)\s*%', re.IGNORECASE | re.DOTALL),
-    # Anciens formats de secours
-    re.compile(r'"ytdReturn"\s*:\s*"?([-\d\.]+)"?', re.IGNORECASE),
-    re.compile(r'1\s+jan\.?\s*[-–]\s*auj\.?\s*[:\s]+([-\d,\.]+)\s*%', re.IGNORECASE),
-    re.compile(r'Depuis\s+le\s+1er\s+jan\.?\s*[:\s]+([-\d,\.]+)\s*%', re.IGNORECASE),
+# Colonnes du tableau « PERFORMANCES DU FONDS ». Les deux onglets n'ont pas le
+# meme nombre de colonnes (les glissantes ajoutent « 1 SEMAINE ») : on lit
+# toujours les en-tetes, jamais une position fixe.
+_COL_KEYS = [
+    ("ytd", re.compile(r"1ER\s*JANV")),
+    ("m1",  re.compile(r"^1\s*MOIS$")),
+    ("m6",  re.compile(r"^6\s*MOIS$")),
+    ("a1",  re.compile(r"^1\s*AN$")),
+    ("a3",  re.compile(r"^3\s*ANS$")),
+    ("a5",  re.compile(r"^5\s*ANS$")),
+    ("a10", re.compile(r"^10\s*ANS$")),
 ]
+_EMPTY_PERF = {k: None for k, _ in _COL_KEYS}
 
 
-def _clean_number(s: str) -> float | None:
-    """Nettoie une chaîne numérique (espaces, virgules françaises) → float."""
-    s = s.strip().replace('\xa0', '').replace(' ', '').replace(',', '.')
+def _text(fragment):
+    """Retire les balises et normalise les espaces (insecables compris)."""
+    t = _TAG_RE.sub(" ", fragment)
+    t = t.replace(" ", " ").replace("&nbsp;", " ")
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _clean_number(s):
+    """'1 234,56 %' -> 1234.56  |  '-' / 'ND' / '' -> None"""
+    if s is None:
+        return None
+    s = (s.replace(" ", "").replace(" ", "")
+          .replace("%", "").replace(",", ".").strip())
+    if s in ("", "-", "–", "ND", "N/A"):
+        return None
     try:
         return float(s)
     except ValueError:
         return None
 
 
-def fetch_vl(isin: str, bid: str) -> dict | None:
-    """
-    Récupère la VL et le YTD depuis Boursorama pour un fonds.
-    Retourne {"vl": float, "ytd": float|None} ou None en cas d'échec.
-    """
-    url = f"https://www.boursorama.com/bourse/opcvm/cours/{bid}/"
-    try:
-        req = urllib.request.Request(url, headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            html = resp.read().decode("utf-8", errors="replace")
-    except Exception as e:
-        print(f"  ✗ {isin} ({bid}): erreur réseau — {e}")
-        return None
+def parse_perf_tables(html):
+    """Renvoie les jeux de performances trouves, dans l'ordre du HTML.
 
-    # Extraction VL
+    Structure Boursorama : <thead> de <th scope=col>, puis une ligne dont la
+    premiere cellule est un <th scope=row>FONDS</th> suivie des <td> de valeurs.
+    Le tableau « fonds partenaires » contient aussi « 1er Janv » mais pas de
+    ligne FONDS : il est donc naturellement ignore.
+    """
+    out = []
+    for tbl in _TABLE_RE.findall(html):
+        thead = _THEAD_RE.search(tbl)
+        head_src = thead.group(0) if thead else tbl
+        heads = [_text(h).upper() for h in _CELL_RE.findall(head_src)]
+        if not any("1ER JANV" in h for h in heads):
+            continue
+        body = tbl[thead.end():] if thead else tbl
+        fonds_row = None
+        for tr in _TR_RE.findall(body):
+            cells = [_text(c) for c in _CELL_RE.findall(tr)]
+            if cells and cells[0].upper() == "FONDS":
+                fonds_row = cells
+                break
+        if not fonds_row:
+            continue
+        pairs = list(zip(heads, fonds_row))   # en-tete <-> valeur, index par index
+        perf = {}
+        for key, rx in _COL_KEYS:
+            perf[key] = next((_clean_number(v) for h, v in pairs if rx.search(h)), None)
+        out.append(perf)
+    return out
+
+
+def parse_page(html):
+    """VL, date de VL et les deux jeux de performances. None si VL illisible."""
     vl = None
-    for pat in _PRICE_PATTERNS:
+    for pat in _VL_PATTERNS:
         m = pat.search(html)
         if m:
             v = _clean_number(m.group(1))
             if v and v > 0:
                 vl = v
                 break
-
-    # Extraction YTD
-    ytd = None
-    for pat in _YTD_PATTERNS:
-        m = pat.search(html)
-        if m:
-            v = _clean_number(m.group(1))
-            if v is not None:
-                ytd = v
-                break
-
-    if vl:
-        return {"vl": vl, "ytd": ytd}
-    else:
-        print(f"  ✗ {isin} ({bid}): VL non trouvée dans la page")
+    if not vl:
         return None
+    dm = _DATE_RE.search(_text(html))
+    vl_date = None
+    if dm:
+        d, mo, y = re.split(r"[/.]", dm.group(1))
+        vl_date = "%s-%s-%s" % (y, mo, d)
+    tables = parse_perf_tables(html)
+    return {
+        "vl": vl,
+        "date": vl_date,
+        "eom": tables[0] if len(tables) >= 1 else dict(_EMPTY_PERF),
+        "gli": tables[1] if len(tables) >= 2 else dict(_EMPTY_PERF),
+    }
+
+
+def fetch_fund(isin, bid):
+    url = "https://www.boursorama.com/bourse/opcvm/cours/%s/" % bid
+    try:
+        req = urllib.request.Request(url, headers=HEADERS)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read()
+            if resp.headers.get("Content-Encoding") == "gzip":
+                raw = gzip.decompress(raw)
+            html = raw.decode("utf-8", errors="replace")
+    except Exception as e:
+        print("  x %s (%s) : erreur reseau - %s" % (isin, bid, e))
+        return None
+    data = parse_page(html)
+    if not data:
+        print("  x %s (%s) : VL introuvable dans la page" % (isin, bid))
+        return None
+    data["bid"] = bid
+    return data
 
 
 def main():
-    today = datetime.date.today().isoformat()
+    today = datetime.date.today()
     results = {}
-    ok = 0
-    ko = 0
+    ok = ko = 0
 
-    print(f"Scraping Boursorama — {today} — {len(FUNDS)} fonds")
-    print("─" * 60)
-
+    print("Scraping Boursorama - %s - %d fonds" % (today.isoformat(), len(FUNDS)))
+    print("-" * 68)
     for i, (isin, bid) in enumerate(FUNDS, 1):
-        print(f"[{i:2}/{len(FUNDS)}] {isin} ({bid}) ...", end=" ", flush=True)
-        data = fetch_vl(isin, bid)
+        print("[%2d/%d] %s (%s) ..." % (i, len(FUNDS), isin, bid), end=" ", flush=True)
+        data = fetch_fund(isin, bid)
         if data:
-            results[isin] = {**data, "date": today}
-            print(f"VL={data['vl']:.4f}  YTD={data['ytd']}%")
+            results[isin] = data
+            print("VL=%s au %s | 1er janv=%s" % (data["vl"], data["date"], data["eom"]["ytd"]))
             ok += 1
         else:
             ko += 1
-        # Pause polie pour ne pas surcharger Boursorama
         time.sleep(0.8)
+    print("-" * 68)
+    print("OK %d fonds | echecs %d" % (ok, ko))
 
-    print("─" * 60)
-    print(f"✅ {ok} fonds récupérés  |  ✗ {ko} échecs")
+    # Un echec silencieux a fige le site pendant deux mois : on echoue fort.
+    if not results:
+        print("ECHEC : aucun fonds recupere - fichiers inchanges")
+        return 1
+    if ok < len(FUNDS) * MIN_OK_RATIO:
+        print("ECHEC : %d/%d fonds seulement (seuil %.0f%%) - fichiers inchanges"
+              % (ok, len(FUNDS), MIN_OK_RATIO * 100))
+        return 1
+    dates = sorted(d["date"] for d in results.values() if d.get("date"))
+    if not dates:
+        print("ECHEC : aucune date de VL lisible - fichiers inchanges")
+        return 1
+    newest = datetime.date.fromisoformat(dates[-1])
+    age = (today - newest).days
+    print("VL la plus recente : %s (%d jour(s))" % (newest.isoformat(), age))
+    if age > MAX_VL_AGE_DAYS:
+        print("ECHEC : la VL la plus recente a %d jours (> %d) - la source ne se met plus a jour"
+              % (age, MAX_VL_AGE_DAYS))
+        return 1
 
-    # Sauvegarde
-    out_path = "vl_overrides.json"
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-    print(f"💾 Sauvegardé → {out_path}")
+    # Le tableau de performances est rendu cote serveur, mais si Boursorama
+    # sert un jour une variante sans ce tableau, mieux vaut echouer que
+    # publier six colonnes de tirets a la place des chiffres precedents.
+    with_perf = sum(1 for d in results.values() if d["eom"].get("a1") is not None)
+    print("Performances 1 an lues sur %d/%d fonds" % (with_perf, len(results)))
+    if with_perf < len(results) * 0.5:
+        print("ECHEC : tableau de performances absent ou illisible - fichiers inchanges")
+        return 1
+
+    with open("bourso_perf.json", "w", encoding="utf-8") as f:
+        json.dump({
+            "last_updated": today.isoformat(),
+            "source": "Boursorama - tableau PERFORMANCES DU FONDS "
+                      "(onglets a la fin de mois et glissantes)",
+            "data": results,
+        }, f, ensure_ascii=False, indent=1)
+    print("Sauvegarde -> bourso_perf.json (%d fonds)" % len(results))
+
+    overrides = {}
+    for isin, d in results.items():
+        overrides[isin] = {"vl": d["vl"], "ytd": d["eom"]["ytd"],
+                           "ytd_gli": d["gli"]["ytd"], "date": d["date"]}
+    with open("vl_overrides.json", "w", encoding="utf-8") as f:
+        json.dump(overrides, f, ensure_ascii=False, indent=1)
+    print("Sauvegarde -> vl_overrides.json (%d fonds)" % len(overrides))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

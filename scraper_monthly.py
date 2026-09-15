@@ -17,7 +17,7 @@ Génère historical_monthly.json :
 Stratégie :
   1. Visite la page du fonds pour établir les cookies de session Boursorama.
   2. Appelle GetTicksEOD avec Referer + X-Requested-With pour récupérer
-     les cours journaliers sur 365 jours.
+     les cours journaliers sur 1825 jours (5 ans).
   3. Réduit à une valeur mensuelle (dernier cours du mois).
   4. Si l'API échoue pour un fonds, conserve les données déjà présentes dans
      historical_monthly.json (aucun écrasement des données existantes).
@@ -197,7 +197,7 @@ def fetch_historical(isin: str, bid: str) -> list | None:
     # ── Étape 2 : GetTicksEOD ───────────────────────────────────────────────
     api_url = (
         f"https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD"
-        f"?symbol={bid}&length=365&period=0&guid="
+        f"?symbol={bid}&length=1825&period=0&guid="
     )
     headers_xhr_with_ref = {**HEADERS_XHR, "Referer": base_url}
 
@@ -309,6 +309,21 @@ def _parse_ticks(data) -> list | None:
         return None
 
     result = [{"date": k, "vl": v} for k, v in sorted(monthly.items())]
+
+    # Filtre des ticks aberrants : un point isolé qui vaut plus de 5x (ou moins
+    # d'1/5) de TOUS ses voisins est une erreur de cotation, pas un mouvement.
+    # (vu sur FR0010106500 : 47 948,79 € en septembre 2021 au lieu de ~487 €)
+    cleaned = []
+    for i, pt in enumerate(result):
+        neighbours = [result[j]["vl"] for j in (i - 1, i + 1) if 0 <= j < len(result)]
+        if neighbours and all(pt["vl"] / nb > 5 or nb / pt["vl"] > 5 for nb in neighbours):
+            print(f"      ⚠ point aberrant ignoré : {pt['date']} = {pt['vl']}")
+            continue
+        cleaned.append(pt)
+    result = cleaned
+    if not result:
+        return None
+
     print(f"      ✓ {len(result)} mois extraits ({result[0]['date']} → {result[-1]['date']})")
     return result
 
@@ -367,6 +382,16 @@ def main():
     print(f"\n💾 Sauvegardé → {out_path}")
     print(f"   {sum(len(v) for v in stored.values())} points mensuels au total")
 
+    # Un run qui ne rafraîchit rien doit être visible dans GitHub Actions.
+    if ok == 0:
+        print("❌ ÉCHEC : aucun fonds mis à jour — l'API Boursorama ne répond plus")
+        return 1
+    if ok < len(FUNDS) * 0.5:
+        print(f"❌ ÉCHEC : seulement {ok}/{len(FUNDS)} fonds mis à jour")
+        return 1
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    import sys
+    sys.exit(main())

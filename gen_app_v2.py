@@ -15,11 +15,36 @@ if os.path.exists(_vl_path):
             _raw_overrides = json.load(_f)
         for _isin, _data in _raw_overrides.items():
             _VL_OVERRIDES[_isin] = _data
-            if _VL_OVERRIDE_DATE is None and "date" in _data:
-                _VL_OVERRIDE_DATE = _data["date"]
+            _d = _data.get("date")
+            if _d and (_VL_OVERRIDE_DATE is None or _d > _VL_OVERRIDE_DATE):
+                _VL_OVERRIDE_DATE = _d
         print(f"📡 vl_overrides.json chargé — {len(_VL_OVERRIDES)} fonds (date: {_VL_OVERRIDE_DATE})")
     except Exception as _e:
         print(f"⚠️  Impossible de lire vl_overrides.json : {_e}")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Performances Boursorama — chargées depuis bourso_perf.json (scrapé quotidiennement)
+# Format : { "last_updated": "...", "data": { ISIN: {"bid","vl","date",
+#            "eom": {ytd,m1,m6,a1,a3,a5,a10}, "gli": {...}} } }
+# Les deux conventions sont conservées : « à la fin de mois » et « glissantes ».
+# ─────────────────────────────────────────────────────────────────────────────
+_BP_DATA: dict = {}
+_BP_LAST_UPDATED: str | None = None
+_bp_path = os.path.join(os.path.dirname(__file__), "bourso_perf.json")
+if os.path.exists(_bp_path):
+    try:
+        with open(_bp_path, encoding="utf-8") as _f:
+            _bp_raw = json.load(_f)
+        if isinstance(_bp_raw, dict) and "data" in _bp_raw:
+            _BP_DATA = _bp_raw["data"]
+            _BP_LAST_UPDATED = _bp_raw.get("last_updated")
+            print(f"\U0001F4C8 bourso_perf.json chargé — {len(_BP_DATA)} fonds (màj: {_BP_LAST_UPDATED})")
+        else:
+            print("\u26A0\uFE0F  bourso_perf.json au format ancien (liste plate) — ignoré")
+    except Exception as _e:
+        print(f"\u26A0\uFE0F  Impossible de lire bourso_perf.json : {_e}")
+else:
+    print("\u26A0\uFE0F  bourso_perf.json absent — repli sur les performances figées dans le code")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Historical monthly VL — chargé depuis historical_monthly.json si disponible
@@ -295,20 +320,57 @@ CATEGORIES = [
   ]},
 ]
 
+# ── Indicateurs de risque depuis l'historique mensuel ────────────────────────
+def _risk_metrics(isin):
+    """Volatilité annualisée (%) et max drawdown (%) sur l'historique mensuel."""
+    pts = _HIST_DATA.get(isin)
+    if not pts:
+        return None, None
+    vls = [p["vl"] for p in sorted(pts, key=lambda x: x["date"]) if p.get("vl")]
+    if len(vls) < 4:
+        return None, None
+    rets = [vls[i] / vls[i-1] - 1 for i in range(1, len(vls))]
+    vol = None
+    if len(rets) >= 5:
+        m = sum(rets) / len(rets)
+        var = sum((r - m) ** 2 for r in rets) / (len(rets) - 1)
+        vol = round((var ** 0.5) * (12 ** 0.5) * 100, 2)
+    peak, mdd = vls[0], 0.0
+    for v in vls:
+        if v > peak:
+            peak = v
+        dd = (v / peak - 1) * 100
+        if dd < mdd:
+            mdd = dd
+    return vol, round(mdd, 2)
+
 # Merge Boursorama data into each fund
 for cat in CATEGORIES:
     for f in cat["funds"]:
-        b = BOURSO_DATA.get(f["isin"])
-        if b:
-            f["m1"]  = b["m1"]
-            f["m6"]  = b["m6"]
-            f["a1"]  = b["a1"]
-            f["a3"]  = b["a3"]
-            f["a5"]  = b["a5"]
-            f["bid"] = b["bid"]
+        b  = BOURSO_DATA.get(f["isin"])
+        bp = _BP_DATA.get(f["isin"])
+        f["bid"] = (bp or {}).get("bid") or (b or {}).get("bid")
+        _KEYS = ("ytd", "m1", "m6", "a1", "a3", "a5")
+        if bp:
+            # Source vivante : les deux conventions Boursorama
+            f["perf_eom"] = {k: bp.get("eom", {}).get(k) for k in _KEYS}
+            f["perf_gli"] = {k: bp.get("gli", {}).get(k) for k in _KEYS}
+            if bp.get("date"):
+                f["vl_date"] = bp["date"]
+        elif b:
+            # Repli : valeurs figées dans le code (une seule convention connue)
+            _fallback = {"ytd": b.get("ytd_b"), "m1": b["m1"], "m6": b["m6"],
+                         "a1": b["a1"], "a3": b["a3"], "a5": b["a5"]}
+            f["perf_eom"] = dict(_fallback)
+            f["perf_gli"] = dict(_fallback)
         else:
-            f["m1"] = f["m6"] = f["a1"] = f["a3"] = f["a5"] = None
-            f["bid"] = None
+            f["perf_eom"] = {k: None for k in _KEYS}
+            f["perf_gli"] = {k: None for k in _KEYS}
+        # Jeu actif rendu côté serveur (bascule côté client ensuite)
+        for _k in ("m1", "m6", "a1", "a3", "a5"):
+            f[_k] = f["perf_eom"][_k]
+        if f["perf_eom"].get("ytd") is not None:
+            f["ytd"] = f["perf_eom"]["ytd"]
         # Écrase VL (et éventuellement YTD) avec les données scrapées en live
         ov = _VL_OVERRIDES.get(f["isin"])
         if ov:
@@ -316,6 +378,8 @@ for cat in CATEGORIES:
                 f["vl"] = round(ov["vl"], 4)
             if ov.get("ytd") is not None:
                 f["ytd"] = ov["ytd"]
+        # Indicateurs de risque (volatilité annualisée + max drawdown 12 mois)
+        f["vol"], f["mdd"] = _risk_metrics(f["isin"])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -329,6 +393,22 @@ def fmt_vl(v):
     if v is None: return "—"
     if v >= 1000: return f"{v:,.2f} €".replace(",", " ")
     return f"{v:.2f} €"
+
+def perf_td(f, key):
+    """Cellule de performance portant les deux conventions Boursorama.
+    data-e = à la fin de mois, data-g = glissantes ; le jeu affiché est
+    reconstruit côté client par setPerfMode()."""
+    e = (f.get("perf_eom") or {}).get(key)
+    g = (f.get("perf_gli") or {}).get(key)
+    if key == "ytd" and e is None:
+        e = f.get("ytd")
+    if key == "ytd" and g is None:
+        g = f.get("ytd")
+    av = e if e is not None else -9999
+    de = "" if e is None else f"{e}"
+    dg = "" if g is None else f"{g}"
+    return (f'<td class="perf-cell" style="text-align:right" data-k="{key}" '
+            f'data-e="{de}" data-g="{dg}" data-val="{av}">{fmt(e)}</td>')
 
 def medal(rank):
     m = ["🥇","🥈","🥉"]
@@ -353,7 +433,7 @@ html_parts.append("""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Le Conservateur – Analyse des Fonds {_fmt_date_short(datetime.date.today().isoformat())}</title>
+<title>Le Conservateur - Analyse des Fonds</title>
 <!-- Chart.js embarqué — fichier autonome, pas de CDN -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -432,6 +512,10 @@ tr.top3 td:first-child{font-weight:700}
 .period-btn{padding:4px 12px;border:1px solid #e2e8f0;border-radius:20px;background:#f7fafc;color:#4a5568;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;outline:none}
 .period-btn:hover{border-color:#3266ad;color:#3266ad;background:#eef3fb}
 .period-btn.active{background:#3266ad;border-color:#3266ad;color:#fff;font-weight:600}
+.perfmode-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 24px 0}
+.perfmode-label{font-size:12px;font-weight:600;color:#4a5568}
+.perfmode-help{font-size:11px;color:#a0aec0;flex:1 1 220px;min-width:0}
+@media(max-width:768px){.perfmode-bar{padding:10px 16px 0}}
 @media(max-width:768px){.section{padding:16px}.tabs{padding:0 16px}.stats-bar{padding:12px 16px}}
 .ptf-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
 .ptf-tab{padding:8px 18px;border-radius:20px;border:1px solid #e2e8f0;background:#f7fafc;font-size:13px;font-weight:500;cursor:pointer;color:#4a5568;transition:all .15s}
@@ -533,6 +617,28 @@ tr.top3 td:first-child{font-weight:700}
 .fs-ytd{font-size:12px;font-weight:600;white-space:nowrap;min-width:46px;text-align:right}
 #fs-search-row{margin-bottom:8px;position:sticky;top:0;background:#fff;padding-bottom:4px;z-index:1}
 .perso-empty{text-align:center;padding:32px;color:#a0aec0;font-style:italic;font-size:14px}
+.perso-total-row>td{background:#eef3fb!important;font-weight:700;border-top:2px solid #3266ad}
+.alloc-ok{color:#22863a}.alloc-warn{color:#d97706}.alloc-bad{color:#c0392b}
+.sim-box{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;margin-top:20px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.sim-title{font-size:15px;font-weight:700;color:#1a202c;margin-bottom:4px}
+.sim-hint{font-size:12px;color:#718096;margin-bottom:12px}
+.sim-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.sim-row label{font-size:12px;font-weight:600;color:#4a5568}
+.sim-row input{width:90px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;font-size:13px;text-align:right}
+.sim-row input:focus{border-color:#3266ad;outline:none}
+.sim-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sim-kpi{flex:1;min-width:130px;background:#f7fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px}
+.sim-kpi .lbl{font-size:11px;color:#718096;margin-bottom:3px}
+.sim-kpi .val{font-size:18px;font-weight:700;color:#1a202c}
+.sim-table{font-size:12px}
+.sim-table td,.sim-table th{padding:5px 10px}
+.sim-note{font-size:11px;color:#a0aec0;margin-top:8px;font-style:italic}
+@media print{.no-print{display:none!important}}
+.vision-bar{display:flex;gap:6px;align-items:center;margin-left:auto}
+#sec_portefeuilles.vis-a1 table th:nth-child(6),#sec_portefeuilles.vis-a1 table td:nth-child(6){background:#fff8e1}
+#sec_portefeuilles.vis-a3 table th:nth-child(7),#sec_portefeuilles.vis-a3 table td:nth-child(7){background:#fff8e1}
+#sec_portefeuilles.vis-a5 table th:nth-child(8),#sec_portefeuilles.vis-a5 table td:nth-child(8){background:#fff8e1}
+#sec_portefeuilles .sim-table th,#sec_portefeuilles .sim-table td{background:transparent!important}
 </style>
 </head>
 <body>
@@ -594,12 +700,23 @@ html_parts.append("""<div class="filter-results" id="filterResults">
         <th style="text-align:right" onclick="sortTable('tblFiltered',8)">1 An</th>
         <th style="text-align:right" onclick="sortTable('tblFiltered',9)">3 Ans</th>
         <th style="text-align:right" onclick="sortTable('tblFiltered',10)">5 Ans</th>
+        <th style="text-align:right" onclick="sortTable('tblFiltered',11)" title="Volatilité annualisée 12 mois">Volat.</th>
+        <th style="text-align:right" onclick="sortTable('tblFiltered',12)" title="Perte maximale 12 mois">Max DD</th>
       </tr></thead>
       <tbody id="filteredBody"></tbody>
     </table>
   </div>
 </div>
 """)
+
+# ── Bascule de convention de performance ─────────────────────────────────────
+html_parts.append(f'''<div class="perfmode-bar">
+  <span class="perfmode-label">Performances&nbsp;:</span>
+  <button class="period-btn active" data-pmode="eom" onclick="setPerfMode('eom')">À la fin de mois</button>
+  <button class="period-btn" data-pmode="gli" onclick="setPerfMode('gli')">Glissantes</button>
+  <span class="perfmode-help" id="perfmodeHelp">Arrêtées à la dernière VL du mois précédent — stables d'un jour à l'autre.</span>
+</div>
+''')
 
 # ── Onglets ──────────────────────────────────────────────────────────────────
 html_parts.append('<div class="tabs" id="mainTabs">\n')
@@ -630,18 +747,19 @@ for i, cat in enumerate(CATEGORIES):
     }
     use_hist = len(hist_in_cat) >= 2  # Minimum 2 fonds avec données historiques
     if use_hist:
-        # Sélectionner les 12 derniers mois communs
+        # Axe complet de la catégorie (jusqu'à 60 mois) — le découpage par
+        # période et le rebasage sont faits côté client sur la fenêtre affichée.
         all_hist_dates = sorted({
             pt["date"]
             for months in hist_in_cat.values()
             for pt in months
-        })[-12:]
+        })[-61:]
     else:
         all_hist_dates = []
 
     html_parts.append(f'<div class="section {active}" id="sec_{cid}">\n')
     html_parts.append(f'<div class="cat-header"><h2>{cat["label"]}</h2><span class="badge">{len(cat["funds"])} fonds</span></div>\n')
-    html_parts.append(f'<div class="source-note">📅 Performances historiques issues de Boursorama — calcul au {_fmt_date_short(_HIST_LAST_UPDATED)} · YTD (depuis le 1er janv.) issu de Boursorama au {_fmt_date_short(_VL_OVERRIDE_DATE)}</div>\n')
+    html_parts.append(f'<div class="source-note">📅 VL et performances relevées sur Boursorama le {_fmt_date_short(_BP_LAST_UPDATED or _VL_OVERRIDE_DATE)} (VL la plus récente : {_fmt_date_short(_VL_OVERRIDE_DATE)}) · historique mensuel des VL au {_fmt_date_short(_HIST_LAST_UPDATED)}</div>\n')
 
     # Top 5 cards
     html_parts.append('<div class="top5">\n')
@@ -665,7 +783,7 @@ for i, cat in enumerate(CATEGORIES):
     # Chart 1 : barres (période sélectionnable)
     html_parts.append(f'''<div class="chart-wrap">
 <h3 id="bartitle_{cid}">Performance YTD</h3>
-<div class="chart-sub">YTD au {_fmt_date_short(_VL_OVERRIDE_DATE)} · Historique Boursorama au {_fmt_date_short(_HIST_LAST_UPDATED)}</div>
+<div class="chart-sub">Relevé Boursorama du {_fmt_date_short(_BP_LAST_UPDATED or _VL_OVERRIDE_DATE)} · convention sélectionnée ci-dessus</div>
 <div class="period-btns">
   <button class="period-btn active" data-cat="{cid}" data-bperiod="YTD" onclick="filterBarPeriod('{cid}','YTD')">YTD</button>
   <button class="period-btn" data-cat="{cid}" data-bperiod="1M" onclick="filterBarPeriod('{cid}','1M')">1 Mois</button>
@@ -678,33 +796,24 @@ for i, cat in enumerate(CATEGORIES):
 </div>
 ''')
 
-    # Chart 2 : courbe multi-périodes
-    if use_hist:
-        _line_subtitle = f"VL réelle Boursorama — {all_hist_dates[0] if all_hist_dates else '?'} → {all_hist_dates[-1] if all_hist_dates else '?'} · % de variation / 1er mois"
-        _line_buttons = f'''<div class="period-btns">
-  <button class="period-btn active" data-cat="{cid}" data-period="12M" onclick="filterLinePeriod('{cid}','12M')">12 Mois</button>
-  <button class="period-btn" data-cat="{cid}" data-period="6M" onclick="filterLinePeriod('{cid}','6M')">6 Mois</button>
+    # Chart 2 : évolution de la VL sur l'historique réel
+    _line_span = f"{all_hist_dates[0]} → {all_hist_dates[-1]}" if all_hist_dates else "—"
+    _line_subtitle = (f"VL mensuelle Boursorama · {_line_span} — chaque courbe est rebasée à 0 %"
+                      " à la première date de la période affichée")
+    _line_buttons = f'''<div class="period-btns">
   <button class="period-btn" data-cat="{cid}" data-period="3M" onclick="filterLinePeriod('{cid}','3M')">3 Mois</button>
+  <button class="period-btn" data-cat="{cid}" data-period="6M" onclick="filterLinePeriod('{cid}','6M')">6 Mois</button>
+  <button class="period-btn active" data-cat="{cid}" data-period="1A" onclick="filterLinePeriod('{cid}','1A')">1 An</button>
   <button class="period-btn" data-cat="{cid}" data-period="3A" onclick="filterLinePeriod('{cid}','3A')">3 Ans</button>
   <button class="period-btn" data-cat="{cid}" data-period="5A" onclick="filterLinePeriod('{cid}','5A')">5 Ans</button>
 </div>'''
-        _line_title = "Évolution VL — données réelles Boursorama"
-    else:
-        _line_subtitle = f"Données Boursorama au {_fmt_date_short(_HIST_LAST_UPDATED)} — axe Y : % cumulé réel"
-        _line_buttons = f'''<div class="period-btns">
-  <button class="period-btn active" data-cat="{cid}" data-period="5A" onclick="filterLinePeriod('{cid}','5A')">5 Ans</button>
-  <button class="period-btn" data-cat="{cid}" data-period="3A" onclick="filterLinePeriod('{cid}','3A')">3 Ans</button>
-  <button class="period-btn" data-cat="{cid}" data-period="1A" onclick="filterLinePeriod('{cid}','1A')">1 An</button>
-  <button class="period-btn" data-cat="{cid}" data-period="6M" onclick="filterLinePeriod('{cid}','6M')">6 Mois</button>
-  <button class="period-btn" data-cat="{cid}" data-period="1M" onclick="filterLinePeriod('{cid}','1M')">1 Mois</button>
-  <button class="period-btn" data-cat="{cid}" data-period="YTD" onclick="filterLinePeriod('{cid}','YTD')">YTD</button>
-</div>'''
-        _line_title = "Performances cumulées multi-horizons"
+    _line_title = "Évolution de la valeur liquidative"
     html_parts.append(f'''<div class="chart-wrap">
 <h3>{_line_title}</h3>
 <div class="chart-sub">{_line_subtitle}</div>
 {_line_buttons}
 <canvas id="line_{cid}" height="{height_bar}"></canvas>
+<div class="chart-sub" id="linenote_{cid}" style="margin-top:10px;margin-bottom:0"></div>
 </div>
 ''')
 
@@ -714,111 +823,68 @@ for i, cat in enumerate(CATEGORIES):
     # Bar chart — toutes périodes stockées, on switche dynamiquement
     bar_labels = [f["name"][:28] for f in funds_sorted]
 
-    def bar_period(key):
-        vals = [f.get(key) for f in funds_sorted]
+    def bar_period(key, mode):
+        src = "perf_eom" if mode == "eom" else "perf_gli"
+        vals = []
+        for f in funds_sorted:
+            v = (f.get(src) or {}).get(key)
+            if key == "ytd" and v is None:
+                v = f.get("ytd")
+            vals.append(v)
         cols = [color if (v is not None and v >= 0) else "#e53e3e" for v in vals]
         return {"data": vals, "colors": cols}
+
+    def bar_set(mode):
+        return {
+            "YTD": bar_period("ytd", mode),
+            "1M":  bar_period("m1",  mode),
+            "6M":  bar_period("m6",  mode),
+            "1A":  bar_period("a1",  mode),
+            "3A":  bar_period("a3",  mode),
+            "5A":  bar_period("a5",  mode),
+        }
 
     all_bar_charts.append({
         "id": f"bar_{cid}",
         "labels": bar_labels,
         "color": color,
-        "periods": {
-            "YTD": bar_period("ytd"),
-            "1M":  bar_period("m1"),
-            "6M":  bar_period("m6"),
-            "1A":  bar_period("a1"),
-            "3A":  bar_period("a3"),
-            "5A":  bar_period("a5"),
-        }
+        "periods": bar_set("eom"),
+        "periodsByMode": {"eom": bar_set("eom"), "gli": bar_set("gli")},
     })
 
-    # Line chart — historique mensuel si disponible, sinon performances cumulées
-    if use_hist and all_hist_dates:
-        # ── Mode historique : VL réelle normalisée en % de variation ────────
-        line_datasets = []
-        n_dates = len(all_hist_dates)
-        line_labels = [
-            f"{_HIST_MONTHS[int(d.split('-')[1])]} {d.split('-')[0][-2:]}"
-            for d in all_hist_dates
-        ]
-        line_weights = [i / (n_dates - 1) if n_dates > 1 else 0.0 for i in range(n_dates)]
-        for fi, f in enumerate(funds_sorted):
-            isin = f["isin"]
-            if isin not in hist_in_cat:
-                continue
-            monthly_dict = {pt["date"]: pt["vl"] for pt in hist_in_cat[isin]}
-            pts = [monthly_dict.get(d) for d in all_hist_dates]
-            non_null = [p for p in pts if p is not None]
-            if len(non_null) < 2:
-                continue
-            base = non_null[0]
-            if not base or base == 0:
-                continue
-            pts_pct = [round((p / base - 1) * 100, 3) if p is not None else None for p in pts]
-            lc = LINE_PALETTE[fi % len(LINE_PALETTE)]
-            line_datasets.append({
-                "label": f["name"][:35],
-                "data": pts_pct,
-                "fullData": pts_pct,
-                "borderColor": lc,
-                "borderWidth": 2,
-                "pointRadius": 3,
-            })
-        # Perf datasets (3A/5A fallback) pour le mode historique
-        _perf_ds_hist = []
-        for fi, f in enumerate(funds_sorted):
-            pts = [f.get("a5"), f.get("a3"), f.get("a1"), f.get("m6"), f.get("m1"), f.get("ytd")]
-            if sum(1 for p in pts if p is not None) < 2:
-                continue
-            _perf_ds_hist.append({
-                "label": f["name"][:35],
-                "data": pts, "fullData": pts,
-                "borderColor": LINE_PALETTE[fi % len(LINE_PALETTE)],
-                "borderWidth": 2, "pointRadius": 4,
-            })
-        all_line_charts.append({
-            "id": f"line_{cid}",
-            "mode": "historical",
-            "labels": line_labels,
-            "weights": line_weights,
-            "datasets": line_datasets,
-            "perfLabels": ['5 Ans','3 Ans','1 An','6 Mois','1 Mois','YTD'],
-            "perfWeights": [0.000, 0.400, 0.750, 0.900, 0.967, 1.000],
-            "perfDatasets": _perf_ds_hist,
+    # Line chart — VL mensuelle brute ; le découpage par période et le rebasage
+    # sont faits côté client, sur la fenêtre réellement affichée. Aucune série
+    # multi-horizons n'est tracée sur un axe temporel : ce serait une fausse
+    # chronologie (chaque horizon est une fenêtre de recul, pas un instant).
+    line_datasets = []
+    line_labels = [
+        f"{_HIST_MONTHS[int(d.split('-')[1])]} {d.split('-')[0][-2:]}"
+        for d in all_hist_dates
+    ]
+    for fi, f in enumerate(funds_sorted):
+        isin = f["isin"]
+        if isin not in hist_in_cat:
+            continue
+        monthly_dict = {pt["date"]: pt["vl"] for pt in hist_in_cat[isin]}
+        pts = [monthly_dict.get(d) for d in all_hist_dates]
+        if sum(1 for p in pts if p is not None) < 2:
+            continue
+        line_datasets.append({
+            "label": f["name"][:35],
+            "vl": pts,                      # VL brute alignée sur l'axe commun
+            "data": pts,
+            "fullData": pts,
+            "borderColor": LINE_PALETTE[fi % len(LINE_PALETTE)],
+            "borderWidth": 2,
+            "pointRadius": 2,
         })
-    else:
-        # ── Mode performance : % cumulés bruts multi-horizons ────────────────
-        _PERF_LABELS  = ['5 Ans','3 Ans','1 An','6 Mois','1 Mois','YTD']
-        _PERF_WEIGHTS = [0.000, 0.400, 0.750, 0.900, 0.967, 1.000]
-        line_datasets = []
-        for fi, f in enumerate(funds_sorted):
-            pts = [
-                f.get("a5"),   # 5 Ans
-                f.get("a3"),   # 3 Ans
-                f.get("a1"),   # 1 An
-                f.get("m6"),   # 6 Mois
-                f.get("m1"),   # 1 Mois
-                f.get("ytd"),  # YTD
-            ]
-            if sum(1 for p in pts if p is not None) < 2:
-                continue
-            lc = LINE_PALETTE[fi % len(LINE_PALETTE)]
-            line_datasets.append({
-                "label": f["name"][:35],
-                "data": pts,
-                "fullData": pts,
-                "borderColor": lc,
-                "borderWidth": 2,
-                "pointRadius": 4,
-            })
-        all_line_charts.append({
-            "id": f"line_{cid}",
-            "mode": "performance",
-            "labels": _PERF_LABELS,
-            "weights": _PERF_WEIGHTS,
-            "datasets": line_datasets,
-        })
+    all_line_charts.append({
+        "id": f"line_{cid}",
+        "mode": "vl",
+        "labels": line_labels,
+        "dates": all_hist_dates,
+        "datasets": line_datasets,
+    })
 
     # ── Table ──────────────────────────────────────────────────────────────────
     html_parts.append(f'''<div class="table-wrap">
@@ -828,12 +894,12 @@ for i, cat in enumerate(CATEGORIES):
   <th onclick="sortTable('tbl_{cid}',1)">Fonds</th>
   <th onclick="sortTable('tbl_{cid}',2)" style="text-align:center">SRRI</th>
   <th onclick="sortTable('tbl_{cid}',3)" style="text-align:right">VL</th>
-  <th onclick="sortTable('tbl_{{cid}}',4)" style="text-align:right" title="YTD au {_fmt_date_short(_VL_OVERRIDE_DATE)}">YTD</th>
-  <th onclick="sortTable('tbl_{{cid}}',5)" style="text-align:right" title="1 mois — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">1 Mois</th>
-  <th onclick="sortTable('tbl_{{cid}}',6)" style="text-align:right" title="6 mois — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">6 Mois</th>
-  <th onclick="sortTable('tbl_{{cid}}',7)" style="text-align:right" title="1 an — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">1 An</th>
-  <th onclick="sortTable('tbl_{{cid}}',8)" style="text-align:right" title="3 ans — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">3 Ans</th>
-  <th onclick="sortTable('tbl_{{cid}}',9)" style="text-align:right" title="5 ans — au {_fmt_date_short(_VL_OVERRIDE_DATE)}">5 Ans</th>
+  <th onclick="sortTable('tbl_{cid}',4)" style="text-align:right" title="Depuis le 1er janvier — relevé Boursorama du {_fmt_date_short(_BP_LAST_UPDATED or _VL_OVERRIDE_DATE)}">YTD</th>
+  <th onclick="sortTable('tbl_{cid}',5)" style="text-align:right" title="1 mois — relevé Boursorama du {_fmt_date_short(_BP_LAST_UPDATED or _VL_OVERRIDE_DATE)}">1 Mois</th>
+  <th onclick="sortTable('tbl_{cid}',6)" style="text-align:right" title="6 mois — relevé Boursorama du {_fmt_date_short(_BP_LAST_UPDATED or _VL_OVERRIDE_DATE)}">6 Mois</th>
+  <th onclick="sortTable('tbl_{cid}',7)" style="text-align:right" title="1 an — relevé Boursorama du {_fmt_date_short(_BP_LAST_UPDATED or _VL_OVERRIDE_DATE)}">1 An</th>
+  <th onclick="sortTable('tbl_{cid}',8)" style="text-align:right" title="3 ans — relevé Boursorama du {_fmt_date_short(_BP_LAST_UPDATED or _VL_OVERRIDE_DATE)}">3 Ans</th>
+  <th onclick="sortTable('tbl_{cid}',9)" style="text-align:right" title="5 ans — relevé Boursorama du {_fmt_date_short(_BP_LAST_UPDATED or _VL_OVERRIDE_DATE)}">5 Ans</th>
 </tr></thead>
 <tbody>
 ''')
@@ -848,12 +914,12 @@ for i, cat in enumerate(CATEGORIES):
   <td class="fund-name" data-val="{f['name']}">{"<a href='" + bourso_url(bid) + "' target='_blank' class='fund-name-link'>" + f['name'] + "</a>" if bid else f["name"]}<br><span class="isin-cell">{f["isin"]}</span></td>
   <td style="text-align:center" data-val="{srri}"><span class="srri-badge srri-{srri}">{srri}</span></td>
   <td style="text-align:right" data-val="{f['vl'] or 0}">{fmt_vl(f["vl"])}</td>
-  <td style="text-align:right" data-val="{f['ytd'] if f['ytd'] is not None else -9999}">{fmt(f["ytd"])}</td>
-  <td style="text-align:right" data-val="{f['m1'] if f['m1'] is not None else -9999}">{fmt(f["m1"])}</td>
-  <td style="text-align:right" data-val="{f['m6'] if f['m6'] is not None else -9999}">{fmt(f["m6"])}</td>
-  <td style="text-align:right" data-val="{f['a1'] if f['a1'] is not None else -9999}">{fmt(f["a1"])}</td>
-  <td style="text-align:right" data-val="{f['a3'] if f['a3'] is not None else -9999}">{fmt(f["a3"])}</td>
-  <td style="text-align:right" data-val="{f['a5'] if f['a5'] is not None else -9999}">{fmt(f["a5"])}</td>
+  {perf_td(f, "ytd")}
+  {perf_td(f, "m1")}
+  {perf_td(f, "m6")}
+  {perf_td(f, "a1")}
+  {perf_td(f, "a3")}
+  {perf_td(f, "a5")}
 </tr>
 ''')
     html_parts.append('</tbody></table></div>\n')
@@ -862,79 +928,132 @@ for i, cat in enumerate(CATEGORIES):
 # ── Section Portefeuilles ──────────────────────────────────────────────────────
 _SRRI_COLORS_PTF = {1:"#22c55e",2:"#84cc16",3:"#eab308",4:"#f59e0b",5:"#f97316",6:"#ef4444",7:"#991b1b"}
 
-_PORTFOLIOS_DATA = [
+# Définition par ISIN + pondération — les perfs sont tirées automatiquement
+# des données fonds (VL/YTD scrapés quotidiennement + perfs Boursorama).
+# 15 lignes par profil.
+_PORTFOLIOS_DEF = [
     {
         "id": "pru", "label": "Prudent", "emoji": "🔵",
         "range": "SRRI 1–3", "color_cls": "pru",
         "desc": "Horizon 3–5 ans · Préservation du capital · Rendement cible ~2–3%/an",
-        "kpis": [
-            ("Perf. Boursorama 1 An", "—", ""),
-            ("Perf. Boursorama 3 Ans", "—", ""),
-            ("SRRI moyen pond.", "2,0", ""),
-            ("Fonds sélectionnés", "10", ""),
-        ],
-        "note": "25% SRRI1 (monétaire) · 45% SRRI2 (oblig. horizon) · 30% SRRI3 (diversifié prudent)",
+        "note": "20% SRRI1 (monétaire) · 45% SRRI2 (oblig. daté/horizon) · 35% SRRI3 (obligataire & diversifié prudent)",
         "funds": [
-            (1, "TF – Tikehau Short Duration (R)", 1, "+0,53%", "+2,06%", "+12,05%", "+9,42%", 10),
-            (2, "Palatine Monétaire Court Terme (R)", 1, "+0,88%", "+1,96%", "+9,37%", "+10,38%", 10),
-            (3, "Conservateur Oblig. CT (C)", 1, "+0,66%", "+1,99%", "+10,47%", "+7,49%", 5),
-            (4, "Conservateur Horizon 2031 (I)", 2, "+1,01%", "+3,61%", "—", "—", 20),
-            (5, "Conservateur Horizon 2027 (I)", 2, "+0,93%", "+2,27%", "+16,45%", "+9,94%", 15),
-            (6, "Oddo BHF Global Target 2026 (CR)", 2, "+0,77%", "+2,37%", "+13,38%", "+11,31%", 10),
-            (7, "DNCA Eurose (C)", 3, "+2,07%", "+4,80%", "+18,36%", "+21,76%", 15),
-            (8, "DNCA Invest Flex Inflation", 3, "+1,59%", "+2,95%", "+3,55%", "+12,54%", 10),
-            (9, "Conservateur Oblig. MT (C)", 3, "+0,28%", "+1,39%", "+12,18%", "+4,44%", 3),
-            (10, "Oddo Sustainable Credit Options (CR)", 3, "−0,39%", "+1,39%", "+12,20%", "+5,15%", 2),
+            ("FR0013287315", 8),   # Palatine Monétaire Court Terme (R)
+            ("FR0011461326", 5),   # Conservateur Oblig. CT (C)
+            ("LU1585265066", 7),   # TF - Tikehau Short Duration (R)
+            ("FR001400PKZ3", 12),  # Conservateur Horizon 2031 (I)
+            ("FR0013398294", 10),  # Conservateur Horizon 2027 (I)
+            ("FR0013426657", 6),   # Oddo BHF Global Target 2026 (CR)
+            ("FR0013505450", 6),   # Tikehau 2027
+            ("FR001400K2B5", 6),   # Tikehau 2029
+            ("FR0013398302", 5),   # Conservateur Horizon 2027 (C)
+            ("LU0284394235", 10),  # DNCA Invest - Eurose (A)
+            ("LU1694790202", 7),   # DNCA Invest Flex Inflation
+            ("LU1694789451", 6),   # DNCA Invest Alpha Bonds (A)
+            ("FR0010915314", 4),   # LF Obligations Carbon Impact C
+            ("FR0010564328", 4),   # Conservateur Oblig. MT (C)
+            ("LU1752460292", 4),   # Oddo Sustainable Credit Optn CR
         ]
     },
     {
         "id": "equ", "label": "Équilibré", "emoji": "🟢",
         "range": "SRRI 1–5", "color_cls": "equ",
         "desc": "Horizon 5–7 ans · Croissance modérée · Rendement cible ~7–9%/an",
-        "kpis": [
-            ("Perf. Boursorama 1 An", "—", ""),
-            ("Perf. Boursorama 3 Ans", "—", ""),
-            ("SRRI moyen pond.", "4,1", ""),
-            ("Fonds sélectionnés", "10", ""),
-        ],
-        "note": "15% SRRI2–3 (ancre défensive) · 55% SRRI4 (diversifiés) · 30% SRRI5 (actions flexibles)",
+        "note": "16% SRRI2–3 (ancre défensive) · 64% SRRI4 (diversifiés & flexibles) · 20% SRRI5 (actions flexibles)",
         "funds": [
-            (1, "Conservateur Horizon 2031 (I)", 2, "+1,01%", "+3,61%", "—", "—", 5),
-            (2, "DNCA Eurose (C)", 3, "+2,07%", "+4,80%", "+18,36%", "+21,76%", 10),
-            (3, "DNCA Invest Convertibles (B)", 4, "+10,12%", "+13,87%", "+32,52%", "+16,55%", 15),
-            (4, "Carmignac Patrimoine (A)", 4, "+3,82%", "+11,30%", "+29,54%", "+12,47%", 15),
-            (5, "CPR Croissance Réactive (P)", 4, "+1,16%", "+10,28%", "+20,34%", "+16,39%", 10),
-            (6, "Conservateur Diversifié (C)", 4, "+1,28%", "+9,16%", "+22,40%", "+13,49%", 10),
-            (7, "Congrégation Investissement (C)", 4, "+3,50%", "+5,04%", "+21,43%", "+15,88%", 10),
-            (8, "R-co Valor (C)", 5, "−4,94%", "+11,52%", "+39,66%", "+34,94%", 10),
-            (9, "Conservateur Actions Flexibles (C)", 5, "+5,13%", "+9,16%", "+29,28%", "—", 10),
+            ("FR001400PKZ3", 4),   # Conservateur Horizon 2031 (I)
+            ("LU0284394235", 8),   # DNCA Invest - Eurose (A)
+            ("LU1694789451", 4),   # DNCA Invest Alpha Bonds (A)
+            ("LU0512124107", 10),  # DNCA Invest - Convertibles (B)
+            ("FR0010135103", 10),  # Carmignac Patrimoine (A)
+            ("FR0010097683", 8),   # CPR Croissance Réactive (P)
+            ("FR0010564336", 8),   # Conservateur Diversifié (C)
+            ("FR0007439666", 8),   # Congrégation Investissement (C)
+            ("FR0010489542", 6),   # Conservateur Diversifié Réactif (C)
+            ("LU2147879543", 6),   # Tikehau International Cross Assets (R)
+            ("FR0010286013", 4),   # Sextant Grand Large (A)
+            ("FR0011199314", 4),   # Conservateur Immo-Or (C)
+            ("FR0010149179", 4),   # Carmignac Absolute Return Europe (A)
+            ("FR0011253624", 8),   # R-co Valor (C)
+            ("FR0013256930", 8),   # Conservateur Actions Flexibles (C)
         ]
     },
     {
         "id": "dyn", "label": "Dynamique", "emoji": "🔴",
         "range": "SRRI 1–7", "color_cls": "dyn",
         "desc": "Horizon 7–10 ans · Croissance forte · Rendement cible ~15–20%/an",
-        "kpis": [
-            ("Perf. Boursorama 1 An", "—", ""),
-            ("Perf. Boursorama 3 Ans", "—", ""),
-            ("SRRI moyen pond.", "5,9", ""),
-            ("Fonds sélectionnés", "10", ""),
-        ],
-        "note": "10% SRRI4 (ancre convertibles) · 65% SRRI6 (actions mondiales/thématiques) · 25% SRRI7 (croissance forte)",
+        "note": "6% SRRI4 (ancre convertibles) · 79% SRRI6 (actions mondiales/thématiques) · 15% SRRI7 (croissance forte)",
         "funds": [
-            (1, "DNCA Invest Convertibles (B)", 4, "+10,12%", "+13,87%", "+32,52%", "+16,55%", 10),
-            (2, "Carmignac Investissement (A)", 6, "+10,55%", "+32,95%", "+82,25%", "+58,21%", 15),
-            (3, "FF – World Fund (A)", 6, "+10,19%", "+23,56%", "+56,45%", "+58,77%", 15),
-            (4, "Magellan (C)", 6, "+24,37%", "+49,19%", "+55,35%", "+12,20%", 10),
-            (5, "Conservateur Actions Monde (C)", 6, "+8,13%", "+15,26%", "+44,08%", "+25,25%", 10),
-            (6, "OFI Croiss. Durable &amp; Solidaire (C)", 6, "+9,80%", "+14,09%", "+41,08%", "+39,97%", 10),
-            (7, "Centifolia (C)", 6, "+9,46%", "+13,61%", "+34,41%", "+54,99%", 5),
-            (8, "EdR Fund – Big Data (A)", 6, "+8,12%", "+15,88%", "+38,41%", "+23,84%", 5),
-            (9, "Echiquier Artificial Intelligence (B)", 7, "+24,11%", "+47,31%", "+122,88%", "+60,75%", 15),
-            (10, "Pictet Clean Energy Transition (P)", 7, "+37,29%", "+67,47%", "+78,55%", "+90,93%", 5),
+            ("LU0512124107", 6),   # DNCA Invest - Convertibles (B)
+            ("FR0010148981", 10),  # Carmignac Investissement (A)
+            ("LU1261432659", 10),  # FF - World Fund (A)
+            ("FR0000292278", 8),   # Magellan (C)
+            ("LU1819480192", 10),  # Echiquier Artificial Intelligence (B)
+            ("LU0280435388", 5),   # Pictet - Clean Energy Transition (P)
+            ("FR0010564229", 8),   # Conservateur Actions Monde (C)
+            ("FR0000983819", 7),   # OFI Croiss Durable & Solidaire C
+            ("FR0007076930", 5),   # Centifolia (C)
+            ("LU1244893696", 4),   # EdR Fund - Big Data (A)
+            ("FR0010649079", 7),   # Palatine Planète (R)
+            ("LU0115768185", 6),   # FF - Sustainable Asia Equity Fund (E)
+            ("FR0010106500", 5),   # Echiquier Excelsior A
+            ("FR0010298596", 5),   # Moneta Multi Caps (C)
+            ("LU1902443420", 4),   # CPR Invest Climate Action (A)
         ]
     },
 ]
+
+# ── Construction des portefeuilles à partir des données fonds ──────────────
+_FUND_BY_ISIN = {f["isin"]: f for cat in CATEGORIES for f in cat["funds"]}
+
+def _esc_html(s):
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+def _fmt_ptf_val(v):
+    """float → '+2,06%' | None → '—' (format attendu par le rendu)"""
+    if v is None:
+        return "—"
+    s = f"{v:+.2f}%".replace(".", ",")
+    return s.replace("-", "−")
+
+_PORTFOLIOS_DATA = []
+for _pdef in _PORTFOLIOS_DEF:
+    _funds = []
+    _w_srri = 0.0
+    _tot_w = 0
+    for _isin, _pct in _pdef["funds"]:
+        _fd = _FUND_BY_ISIN.get(_isin)
+        if not _fd:
+            print(f"⚠️  Portefeuille {_pdef['label']} : ISIN {_isin} introuvable — ignoré")
+            continue
+        _funds.append((
+            len(_funds) + 1,
+            _esc_html(_fd["name"]),
+            _fd.get("srri") or 4,
+            _fmt_ptf_val(_fd.get("ytd")),
+            _fmt_ptf_val(_fd.get("a1")),
+            _fmt_ptf_val(_fd.get("a3")),
+            _fmt_ptf_val(_fd.get("a5")),
+            _pct,
+            _fd.get("vol"),
+            _fd.get("mdd"),
+        ))
+        _w_srri += (_fd.get("srri") or 4) * _pct
+        _tot_w += _pct
+    if _tot_w != 100:
+        print(f"⚠️  Portefeuille {_pdef['label']} : somme des pondérations = {_tot_w}% (≠ 100%)")
+    _srri_moy = _w_srri / _tot_w if _tot_w else 0
+    _PORTFOLIOS_DATA.append({
+        **{k: _pdef[k] for k in ("id", "label", "emoji", "range", "color_cls", "desc", "note")},
+        "kpis": [
+            ("Perf. pondérée 1 An", "—", ""),
+            ("Perf. annualisée", "—", ""),
+            ("Volatilité 1 An (pond.)", "—", ""),
+            ("SRRI moyen pond.", f"{_srri_moy:.1f}".replace(".", ","), ""),
+            ("Fonds sélectionnés", str(len(_funds)), ""),
+        ],
+        "funds": _funds,
+    })
 
 # ── Tri des fonds UC par performance 1 an décroissante ────────────────────
 def _a1_sort_key(fund_tuple):
@@ -977,20 +1096,28 @@ def _parse_pct(s):
 _ptf_js_dict = {}
 for _ptf in _PORTFOLIOS_DATA:
     _funds_arr = []
-    for _rank, _name, _srri, _ytd_s, _a1_s, _a3_s, _a5_s, _pct in _ptf["funds"]:
+    for _rank, _name, _srri, _ytd_s, _a1_s, _a3_s, _a5_s, _pct, _vol, _mdd in _ptf["funds"]:
         _funds_arr.append({
+            "name": _name,
+            "srri": _srri,
             "pct": _pct,
             "ytd": _parse_pct(_ytd_s),
             "a1":  _parse_pct(_a1_s),
             "a3":  _parse_pct(_a3_s),
             "a5":  _parse_pct(_a5_s),
+            "vol": _vol,
+            "mdd": _mdd,
         })
-    _ptf_js_dict[_ptf["id"]] = {"cc": _ptf["color_cls"], "funds": _funds_arr}
+    _ptf_js_dict[_ptf["id"]] = {"cc": _ptf["color_cls"], "label": _ptf["label"], "funds": _funds_arr}
 _PTF_DATA_JS = json.dumps(_ptf_js_dict, ensure_ascii=False)
 
-html_parts.append('<div class="section" id="sec_portefeuilles">\n')
-html_parts.append('<div class="cat-header"><h2>💼 Portefeuilles Optimisés</h2><span class="badge">3 profils de risque</span></div>\n')
-html_parts.append(f'<div class="source-note">📅 Construit sur la base des performances Boursorama au {_fmt_date_short(_HIST_LAST_UPDATED)} — Sélection et pondération optimisée des 10 meilleurs fonds par profil SRRI</div>\n')
+html_parts.append('<div class="section vis-a1" id="sec_portefeuilles">\n')
+html_parts.append('<div class="cat-header"><h2>💼 Portefeuilles Optimisés</h2><span class="badge">3 profils de risque</span>'
+                  '<div class="vision-bar"><span style="font-size:12px;font-weight:600;color:#4a5568">Vision&nbsp;:</span>'
+                  '<button class="period-btn active" id="visBtn-a1" onclick="setVision(\'a1\')">1 an</button>'
+                  '<button class="period-btn" id="visBtn-a3" onclick="setVision(\'a3\')">3 ans (N−3)</button>'
+                  '<button class="period-btn" id="visBtn-a5" onclick="setVision(\'a5\')">5 ans (N−5)</button></div></div>\n')
+html_parts.append(f'<div class="source-note">📅 Construit sur la base des performances Boursorama au {_fmt_date_short(_HIST_LAST_UPDATED)} — Sélection et pondération optimisée de 15 fonds par profil SRRI · Perfs mises à jour automatiquement</div>\n')
 
 # ── Fonds en Euros controls ────────────────────────────────────────────────
 html_parts.append('''<div class="fe-controls">
@@ -1047,9 +1174,12 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
     html_parts.append(f'  <div class="ptf-title ptf-t-{cc}">{ptf["emoji"]} Portefeuille {ptf["label"]}</div>\n')
     html_parts.append(f'  <div class="ptf-sub ptf-s-{cc}">{ptf["desc"]}</div>\n')
     html_parts.append('  <div class="ptf-kpis">\n')
+    _kpi_ids = {0: "main", 1: "ann", 2: "vol"}
     for ki, (lbl, val, cls) in enumerate(ptf["kpis"]):
-        kid_attr = f' id="kpi-a{"1" if ki==0 else "3"}-{ptf["id"]}"' if ki < 2 else ''
-        html_parts.append(f'    <div class="ptf-kpi"><div class="ptf-kpi-lbl">{lbl}</div><div class="ptf-kpi-val {cls}"{kid_attr}>{val}</div></div>\n')
+        kid_attr = f' id="kpi-{_kpi_ids[ki]}-{ptf["id"]}"' if ki in _kpi_ids else ''
+        klbl_attr = f' id="kpilbl-{_kpi_ids[ki]}-{ptf["id"]}"' if ki in (0, 1) else ''
+        html_parts.append(f'    <div class="ptf-kpi"><div class="ptf-kpi-lbl"{klbl_attr}>{lbl}</div><div class="ptf-kpi-val {cls}"{kid_attr}>{val}</div></div>\n')
+    html_parts.append(f'  <div style="margin-top:10px"><button class="perso-action-btn" onclick="printPortfolio(\'{ptf["id"]}\')">🖨️ Imprimer / PDF</button></div>\n')
     html_parts.append('  </div>\n</div>\n')
 
     html_parts.append('<div class="table-wrap" style="border-radius:0 0 10px 10px;margin-top:0">\n')
@@ -1061,6 +1191,8 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
     html_parts.append('  <th style="text-align:right;width:60px">1 An</th>\n')
     html_parts.append('  <th style="text-align:right;width:60px">3 Ans</th>\n')
     html_parts.append('  <th style="text-align:right;width:60px">5 Ans</th>\n')
+    html_parts.append('  <th style="text-align:right;width:58px" title="Volatilité annualisée sur 12 mois">Volat.</th>\n')
+    html_parts.append('  <th style="text-align:right;width:58px" title="Perte maximale sur 12 mois">Max DD</th>\n')
     html_parts.append('  <th style="width:110px">Allocation</th>\n')
     html_parts.append('</tr></thead>\n<tbody>\n')
 
@@ -1074,6 +1206,8 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
   <td style="text-align:right" id="fe-a1-{ptf["id"]}">—</td>
   <td style="text-align:right" id="fe-a3-{ptf["id"]}">—</td>
   <td style="text-align:right" id="fe-a5-{ptf["id"]}">—</td>
+  <td style="text-align:right;color:#a0aec0">≈0</td>
+  <td style="text-align:right;color:#a0aec0">0</td>
   <td id="fe-alloc-{ptf["id"]}"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:84px"></div><span style="font-size:12px;font-weight:600;min-width:28px">30 %</span></div></td>
 </tr>\n''')
 
@@ -1086,16 +1220,21 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
   <td style="text-align:right" id="dop-a1-{ptf["id"]}">—</td>
   <td style="text-align:right" id="dop-a3-{ptf["id"]}">—</td>
   <td style="text-align:right" id="dop-a5-{ptf["id"]}">—</td>
+  <td style="text-align:right;color:#a0aec0">≈0</td>
+  <td style="text-align:right;color:#a0aec0">0</td>
   <td id="dop-alloc-{ptf["id"]}"><span style="color:#cbd5e0;font-size:12px;padding-left:4px">—</span></td>
 </tr>\n''')
 
-    for rank, name, srri, ytd, a1, a3, a5, pct in ptf["funds"]:
+    for rank, name, srri, ytd, a1, a3, a5, pct, vol, mdd in ptf["funds"]:
         sc = _SRRI_COLORS_PTF.get(srri, "#94a3b8")
         bar_w = pct * 3
         _ytd_f = _parse_pct(ytd); _a1_f = _parse_pct(a1)
         _a3_f  = _parse_pct(a3);  _a5_f = _parse_pct(a5)
         def _dv(v): return str(v) if v is not None else "null"
         _ftype_lbl = _FTYPE_LABELS.get(srri, "")
+        _vol_html = f'{vol:.1f}%'.replace(".", ",") if vol is not None else '<span class="na">—</span>'
+        _mdd_html = (f'<span class="neg">{mdd:.1f}%</span>'.replace(".", ",") if mdd is not None and mdd < 0
+                     else ('0,0%' if mdd is not None else '<span class="na">—</span>'))
         html_parts.append(f'''<tr class="uc-row ftype-{srri}" data-pct="{pct}" data-ytd="{_dv(_ytd_f)}" data-a1="{_dv(_a1_f)}" data-a3="{_dv(_a3_f)}" data-a5="{_dv(_a5_f)}">
   <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-{cc}-{rank}" checked onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">{rank}</td>
@@ -1105,6 +1244,8 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
   <td style="text-align:right">{_ptf_perf(a1)}</td>
   <td style="text-align:right">{_ptf_perf(a3)}</td>
   <td style="text-align:right">{_ptf_perf(a5)}</td>
+  <td style="text-align:right;font-size:12px;color:#718096">{_vol_html}</td>
+  <td style="text-align:right;font-size:12px">{_mdd_html}</td>
   <td id="alloc-{cc}-{rank}"><div class="alloc-wrap"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-{cc}" id="bar-{cc}-{rank}" style="width:{bar_w}px"></div><span id="pct-{cc}-{rank}" style="font-size:12px;font-weight:600;min-width:28px">{pct}&nbsp;%</span></div><input type="number" class="manual-alloc" id="minput-{cc}-{rank}" min="0" max="100" step="0.5" placeholder="%" oninput="updateFE()" title="Allocation manuelle — laisser vide pour auto"></div></td>
 </tr>\n''')
 
@@ -1112,13 +1253,33 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
     html_parts.append(f'<p style="font-size:11px;color:#a0aec0;margin-top:8px;padding:0 4px">{ptf["note"]}. Performances passées cumulées, non garanties.</p>\n')
     html_parts.append('</div>\n')  # end ptf-panel
 
+# ── Simulateur de projection (générique, réutilisé pour types & perso) ──────
+def _sim_block(prefix, note):
+    return f'''<div class="sim-box">
+  <div class="sim-title">📈 Simulateur de projection</div>
+  <div class="sim-hint" id="sim{prefix}-hint">{note}</div>
+  <div class="sim-row">
+    <label>Versement initial</label><input id="sim{prefix}-init" type="number" min="0" step="500" value="10000" oninput="simCompute('{prefix}')"><span style="font-size:12px">€</span>
+    <label>Versement mensuel</label><input id="sim{prefix}-monthly" type="number" min="0" step="50" value="200" oninput="simCompute('{prefix}')"><span style="font-size:12px">€</span>
+    <label>Horizon</label><input id="sim{prefix}-years" type="number" min="1" max="40" value="10" oninput="simCompute('{prefix}')"><span style="font-size:12px">ans</span>
+    <label>Rendement annuel</label><input id="sim{prefix}-rate" type="number" step="0.1" value="5.0" oninput="simCompute('{prefix}')"><span style="font-size:12px">%</span>
+    <button class="perso-action-btn primary" onclick="simUseActive('{prefix}')">↺ Utiliser le portefeuille affiché</button>
+  </div>
+  <div class="sim-kpis" id="sim{prefix}-kpis"></div>
+  <div class="table-wrap" style="margin-bottom:0"><table class="sim-table" id="sim{prefix}-table"></table></div>
+  <div class="sim-note">Projection théorique à rendement constant, hors frais et fiscalité. Les performances passées ne préjugent pas des performances futures.</div>
+</div>\n'''
+
+html_parts.append(_sim_block("T", "Basé sur le rendement pondéré du portefeuille type affiché (1 an, ou 3 ans annualisé)."))
 html_parts.append('</div>\n')  # end sec_portefeuilles
 
 # ── Section Portefeuille Perso ────────────────────────────────────────────────
 html_parts.append('''<div class="section" id="sec_perso">
   <div class="perso-tab-bar" id="perso-tab-bar"></div>
   <div id="perso-panels"></div>
-</div>
+''')
+html_parts.append(_sim_block("P", "Basé sur le rendement pondéré du portefeuille perso affiché."))
+html_parts.append('''</div>
 
 <div class="perso-modal-overlay hidden" id="perso-modal">
   <div class="perso-modal-box">
@@ -1149,7 +1310,9 @@ for cat in CATEGORIES:
             "srri": f.get("srri"), "vl": f.get("vl"),
             "ytd": f.get("ytd"), "m1": f.get("m1"), "m6": f.get("m6"),
             "a1": f.get("a1"), "a3": f.get("a3"), "a5": f.get("a5"),
-            "bid": f.get("bid"),
+            "eom": f.get("perf_eom") or {}, "gli": f.get("perf_gli") or {},
+            "bid": f.get("bid"), "vl_date": f.get("vl_date"),
+            "vol": f.get("vol"), "mdd": f.get("mdd"),
         })
 all_funds_js = json.dumps(all_funds_list, ensure_ascii=False)
 
@@ -1277,7 +1440,9 @@ class TinyChart {
     if (!n||!ds.length) return;
     const legRows=Math.ceil(ds.length/3);
     const LEGH=legRows*20+10;
-    const PL=50, PR=12, PT=14, PB=30+LEGH;
+    // PR élargi : la dernière étiquette de l'axe X est centrée sur le dernier
+    // point et doit tenir entièrement dans le canvas.
+    const PL=50, PR=30, PT=14, PB=30+LEGH;
     const cW=W-PL-PR, cH=H-PT-PB;
     const allV=ds.flatMap(d=>(d.data||[]).filter(v=>v!=null&&!isNaN(v)));
     if (!allV.length) return;
@@ -1303,15 +1468,21 @@ class TinyChart {
       ctx.beginPath(); ctx.moveTo(PL,yP(0)); ctx.lineTo(PL+cW,yP(0)); ctx.stroke();
       ctx.setLineDash([]);
     }
-    // x vertical grid lines (légères)
+    // Espacement des libellés : au moins 46 px entre deux étiquettes, ancré
+    // sur la dernière date pour qu'elle soit toujours affichée.
+    const maxLbl=Math.max(2,Math.floor(cW/46));
+    const lblStep=Math.max(1,Math.ceil(n/maxLbl));
+    const showLbl=i=>(n-1-i)%lblStep===0;
+    // x vertical grid lines (légères) — uniquement sous les libellés affichés
     ctx.strokeStyle='#edf2f7'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
     for(let i=0;i<n;i++){
+      if(!showLbl(i)) continue;
       ctx.beginPath(); ctx.moveTo(xP(i),PT); ctx.lineTo(xP(i),PT+cH); ctx.stroke();
     }
     ctx.setLineDash([]);
     // x labels
     ctx.fillStyle='#4a5568'; ctx.font='bold 11px system-ui'; ctx.textAlign='center';
-    labels.forEach((l,i)=>ctx.fillText(l, xP(i), PT+cH+16));
+    labels.forEach((l,i)=>{ if(showLbl(i)) ctx.fillText(l, xP(i), PT+cH+16); });
     // x axis
     ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PL,PT+cH); ctx.lineTo(PL+cW,PT+cH); ctx.stroke();
@@ -1373,12 +1544,14 @@ class TinyChart {
       (d.data||[]).forEach((v,i)=>{
         if(v==null||isNaN(v)) return;
         const isHov=i===hovXIdx;
-        const r=isHov?6:(d.pointRadius||4);
+        const pr=(d.pointRadius==null)?4:d.pointRadius;
+        if(pr<=0 && !isHov) return;   // séries denses : pas de pastilles
+        const r=isHov?6:pr;
         ctx.beginPath(); ctx.arc(xP(i),yP(v),r,0,Math.PI*2);
         ctx.fillStyle='#fff'; ctx.fill();
         ctx.strokeStyle=d.borderColor||'#3266ad'; ctx.lineWidth=2; ctx.stroke();
         // Valeur affichée sur le point (sauf si trop de courbes → lisibilité)
-        if (ds.length<=6 || isHov) {
+        if ((ds.length<=6 && pr>0) || isHov) {
           const txt=(v>=0?'+':'')+v.toFixed(1)+'%';
           ctx.font=isHov?'bold 10px system-ui':'9px system-ui';
           ctx.fillStyle=d.borderColor||'#3266ad';
@@ -1516,12 +1689,14 @@ function applyFilters() {{
       <td data-val="${'{f.cat_label}'}" style="font-size:11px;color:#718096">${'{f.cat_label}'}</td>
       <td style="text-align:center" data-val="${'{f.srri}'}">${{`<span class="srri-badge" style="background:${{sc}}">${{f.srri}}</span>`}}</td>
       <td style="text-align:right" data-val="${'{f.vl || 0}'}">${{fmtVL(f.vl)}}</td>
-      <td style="text-align:right" data-val="${'{f.ytd ?? -9999}'}">${{fmt(f.ytd)}}</td>
-      <td style="text-align:right" data-val="${'{f.m1 ?? -9999}'}">${{fmt(f.m1)}}</td>
-      <td style="text-align:right" data-val="${'{f.m6 ?? -9999}'}">${{fmt(f.m6)}}</td>
-      <td style="text-align:right" data-val="${'{f.a1 ?? -9999}'}">${{fmt(f.a1)}}</td>
-      <td style="text-align:right" data-val="${'{f.a3 ?? -9999}'}">${{fmt(f.a3)}}</td>
-      <td style="text-align:right" data-val="${'{f.a5 ?? -9999}'}">${{fmt(f.a5)}}</td>
+      <td style="text-align:right" data-val="${'{pv(f,"ytd") ?? -9999}'}">${{fmt(pv(f,'ytd'))}}</td>
+      <td style="text-align:right" data-val="${'{pv(f,"m1") ?? -9999}'}">${{fmt(pv(f,'m1'))}}</td>
+      <td style="text-align:right" data-val="${'{pv(f,"m6") ?? -9999}'}">${{fmt(pv(f,'m6'))}}</td>
+      <td style="text-align:right" data-val="${'{pv(f,"a1") ?? -9999}'}">${{fmt(pv(f,'a1'))}}</td>
+      <td style="text-align:right" data-val="${'{pv(f,"a3") ?? -9999}'}">${{fmt(pv(f,'a3'))}}</td>
+      <td style="text-align:right" data-val="${'{pv(f,"a5") ?? -9999}'}">${{fmt(pv(f,'a5'))}}</td>
+      <td style="text-align:right;color:#718096" data-val="${'{f.vol ?? -9999}'}">${{f.vol != null ? f.vol.toFixed(1).replace('.',',') + '%' : '<span class="na">—</span>'}}</td>
+      <td style="text-align:right" data-val="${'{f.mdd ?? -9999}'}">${{f.mdd != null ? (f.mdd < 0 ? '<span class="neg">' + f.mdd.toFixed(1).replace('.',',') + '%</span>' : '0,0%') : '<span class="na">—</span>'}}</td>
     </tr>`;
   }}).join('');
 }}
@@ -1578,11 +1753,28 @@ function sortTable(tableId, col) {{
 const BAR_CHARTS = {bar_js};
 const barInstances = {{}};
 
+// ── Convention de performance active : 'eom' (à la fin de mois) | 'gli' (glissantes)
+let PERF_MODE = 'eom';
+const PERF_MODE_HELP = {{
+  eom: "Arrêtées à la dernière VL du mois précédent — stables d'un jour à l'autre.",
+  gli: "Arrêtées à la dernière VL connue — cohérentes avec la VL affichée, mais elles bougent chaque jour."
+}};
+function barPeriods(c) {{
+  return (c.periodsByMode && c.periodsByMode[PERF_MODE]) || c.periods;
+}}
+// Valeur d'un fonds dans la convention active (ALL_FUNDS)
+function pv(f, k) {{
+  const src = (PERF_MODE === 'gli' ? f.gli : f.eom) || {{}};
+  let v = src[k];
+  if (v === undefined || v === null) v = (k === 'ytd' ? f.ytd : null);
+  return (v === undefined) ? null : v;
+}}
+
 BAR_CHARTS.forEach(c => {{
   const canvas = document.getElementById(c.id);
   if (!canvas) return;
   const catId = c.id.replace('bar_','');
-  const pd = c.periods['YTD'];
+  const pd = barPeriods(c)['YTD'];
   barInstances[catId] = new TinyChart(canvas, {{
     type: 'hbar',
     labels: c.labels,
@@ -1600,49 +1792,115 @@ function filterBarPeriod(catId, period) {{
   if (!chart) return;
   const barDef = BAR_CHARTS.find(c => c.id === 'bar_'+catId);
   if (!barDef) return;
-  const pd = barDef.periods[period];
+  const pd = barPeriods(barDef)[period];
   chart.setData(barDef.labels, [{{ data: pd.data, backgroundColor: pd.colors }}]);
   const el = document.getElementById('bartitle_'+catId);
   if (el) el.textContent = 'Performance ' + BAR_PERIOD_TITLES[period];
 }}
 
-// ── Line charts (TinyChart) — historique mensuel ou performances cumulées ────
-// Chaque entrée de LINE_CHARTS contient ses propres labels, weights et mode.
+function setPerfMode(mode) {{
+  if (mode !== 'eom' && mode !== 'gli') return;
+  PERF_MODE = mode;
+  document.querySelectorAll('.period-btn[data-pmode]').forEach(b =>
+    b.classList.toggle('active', b.dataset.pmode === mode));
+  const help = document.getElementById('perfmodeHelp');
+  if (help) help.textContent = PERF_MODE_HELP[mode];
+
+  // Cellules de performance des tableaux par catégorie
+  const attr = (mode === 'gli') ? 'g' : 'e';
+  document.querySelectorAll('td.perf-cell[data-k]').forEach(td => {{
+    const raw = td.dataset[attr];
+    if (raw === undefined || raw === '') {{
+      td.innerHTML = '<span class="na">—</span>';
+      td.dataset.val = '-9999';
+      return;
+    }}
+    const v = parseFloat(raw);
+    td.dataset.val = String(v);
+    const cls = v > 0 ? 'pos' : (v < 0 ? 'neg' : 'neu');
+    td.innerHTML = '<span class="' + cls + '">' + (v >= 0 ? '+' : '') + v.toFixed(2) + '%</span>';
+  }});
+
+  // Graphiques en barres
+  BAR_CHARTS.forEach(c => {{
+    const catId = c.id.replace('bar_','');
+    const inst = barInstances[catId];
+    if (!inst) return;
+    const btn = document.querySelector('.period-btn[data-cat="'+catId+'"][data-bperiod].active');
+    const per = btn ? btn.dataset.bperiod : 'YTD';
+    const pd = barPeriods(c)[per];
+    if (pd) inst.setData(c.labels, [{{ data: pd.data, backgroundColor: pd.colors }}]);
+  }});
+
+  // Tableau de résultats (recherche / SRRI)
+  const fr = document.getElementById('filterResults');
+  if (fr && fr.classList.contains('active')) applyFilters();
+}}
+
+// ── Line charts (TinyChart) — évolution de la VL réelle ────────────────────
+// Chaque courbe est rebasée à 0 % sur la PREMIÈRE date de la fenêtre affichée.
+// Un fonds sans VL à cette date est exclu du graphique (et signalé), plutôt que
+// rebasé sur sa propre date de départ : sinon les % ne sont pas comparables.
 const LINE_CHARTS = {line_js};
 const lineInstances = {{}};
-const lineFullDs    = {{}};   // catId → datasets complets (fullData intacts)
-const lineMeta      = {{}};   // catId → {{mode, labels, weights}}
+const lineMeta      = {{}};
 
-// Indices de départ pour le mode "performance" (7 points)
-const PERF_START = {{'5A':0,'3A':1,'1A':2,'6M':3,'1M':4,'YTD':5}};
-// Nombre de mois à afficher pour le mode "historical"
-const HIST_COUNT = {{'12M':12,'6M':6,'3M':3,'1M':1}};
+// Nombre de points mensuels affichés par période (n mois + le point de base)
+const LINE_COUNT = {{'3M':4, '6M':7, '1A':13, '3A':37, '5A':61}};
+
+function lineBuild(catId, period) {{
+  const meta = lineMeta[catId];
+  if (!meta) return null;
+  const total = meta.labels.length;
+  const n     = LINE_COUNT[period] || total;
+  const start = Math.max(0, total - n);
+  const labels = meta.labels.slice(start);
+  const ds = [];
+  let excluded = 0;
+  meta.datasets.forEach(d => {{
+    const win  = d.vl.slice(start);
+    const base = win[0];
+    if (base == null || base === 0) {{ excluded++; return; }}
+    ds.push({{
+      label:       d.label,
+      data:        win.map(v => v == null ? null : Math.round((v / base - 1) * 10000) / 100),
+      borderColor: d.borderColor,
+      borderWidth: d.borderWidth || 2,
+      pointRadius: labels.length > 24 ? 0 : 2
+    }});
+  }});
+  return {{ labels: labels, ds: ds, excluded: excluded, from: meta.dates[start], to: meta.dates[total-1] }};
+}}
+
+function lineNote(catId, built, period) {{
+  const el = document.getElementById('linenote_' + catId);
+  if (!el || !built) return;
+  const per = {{'3M':'3 mois','6M':'6 mois','1A':'1 an','3A':'3 ans','5A':'5 ans'}}[period] || period;
+  let txt = built.ds.length + ' fonds sur ' + per + ' · base 0 % au ' + (built.from || '?');
+  if (built.excluded > 0) {{
+    txt += ' · ' + built.excluded + ' fonds non affiché' + (built.excluded > 1 ? 's' : '')
+        + ' (pas de VL à cette date de départ)';
+  }}
+  el.textContent = txt;
+}}
 
 LINE_CHARTS.forEach(c => {{
   const canvas = document.getElementById(c.id);
   if (!canvas || !c.datasets.length) return;
   const catId = c.id.replace('line_','');
-  const allLabels  = c.labels  || [];
-  const allWeights = c.weights || null;   // null → espacement uniforme
-  const builtDs = c.datasets.map(ds => ({{
-    label:       ds.label,
-    data:        (ds.fullData||ds.data).slice(),
-    fullData:    (ds.fullData||ds.data).slice(),
-    borderColor: ds.borderColor,
-    borderWidth: ds.borderWidth || 2,
-    pointRadius: ds.pointRadius || 4
-  }}));
-  lineFullDs[catId] = builtDs;
-  lineMeta[catId]   = {{ mode: c.mode || 'performance', labels: allLabels, weights: allWeights,
-    perfLabels: c.perfLabels || null, perfWeights: c.perfWeights || null,
-    perfDs: c.perfDatasets ? c.perfDatasets.map(ds => ({{...ds, fullData:(ds.fullData||ds.data).slice()}})) : null
+  lineMeta[catId] = {{
+    labels:   c.labels || [],
+    dates:    c.dates  || [],
+    datasets: c.datasets.map(d => ({{
+      label: d.label, vl: (d.vl || d.fullData || d.data || []).slice(),
+      borderColor: d.borderColor, borderWidth: d.borderWidth || 2
+    }}))
   }};
+  const built = lineBuild(catId, '1A');
   lineInstances[catId] = new TinyChart(canvas, {{
-    type:     'line',
-    labels:   allLabels.slice(),
-    xWeights: allWeights ? allWeights.slice() : null,
-    datasets: builtDs.map(ds => ({{ ...ds, data: ds.fullData.slice() }}))
+    type: 'line', labels: built.labels, xWeights: null, datasets: built.ds
   }});
+  lineNote(catId, built, '1A');
 }});
 
 function filterLinePeriod(catId, period) {{
@@ -1651,51 +1909,10 @@ function filterLinePeriod(catId, period) {{
   }});
   const chart = lineInstances[catId];
   if (!chart) return;
-  const meta       = lineMeta[catId] || {{}};
-  const mode       = meta.mode    || 'performance';
-
-  // Mode historique + période longue (3A/5A) → basculer sur les données de performance statiques
-  const isPerfPeriod = period === '3A' || period === '5A';
-  if (mode === 'historical' && isPerfPeriod && meta.perfDs && meta.perfLabels) {{
-    const start = PERF_START[period] || 0;
-    const labels = meta.perfLabels.slice(start);
-    const newDs  = meta.perfDs.map(ds => ({{ ...ds, data: ds.fullData.slice(start) }}));
-    let normW = null;
-    if (meta.perfWeights) {{
-      const rawW = meta.perfWeights.slice(start);
-      const wMin = rawW[0], wMax = rawW[rawW.length-1], wRange = wMax - wMin || 1;
-      normW = rawW.map(w => (w - wMin) / wRange);
-    }}
-    chart.setData(labels, newDs, normW);
-    return;
-  }}
-
-  const allLabels  = meta.labels  || [];
-  const allWeights = meta.weights || null;
-
-  // Calculer l'indice de début selon le mode
-  let start = 0;
-  if (mode === 'historical') {{
-    const count = HIST_COUNT[period] || allLabels.length;
-    start = Math.max(0, allLabels.length - count);
-  }} else {{
-    start = PERF_START[period] || 0;
-  }}
-
-  const slicedLabels = allLabels.slice(start);
-  const newDs = (lineFullDs[catId]||[]).map(ds => ({{
-    ...ds,
-    data: ds.fullData.slice(start)
-  }}));
-
-  // Re-normaliser les poids proportionnels pour la plage affichée
-  let normW = null;
-  if (allWeights) {{
-    const rawW = allWeights.slice(start);
-    const wMin = rawW[0], wMax = rawW[rawW.length-1], wRange = wMax - wMin || 1;
-    normW = rawW.map(w => (w - wMin) / wRange);
-  }}
-  chart.setData(slicedLabels, newDs, normW);
+  const built = lineBuild(catId, period);
+  if (!built) return;
+  chart.setData(built.labels, built.ds, null);
+  lineNote(catId, built, period);
 }}
 
 // ── Portfolio tabs ────────────────────────────────────────────────────────────
@@ -1706,6 +1923,7 @@ function ptfShow(id) {{
   if (btn) btn.classList.add('active');
   const panel = document.getElementById('ptf_'+id);
   if (panel) panel.classList.add('active');
+  if (typeof simSync === 'function') simSync('T');
 }}
 
 // ── Resize fenêtre (debounce 120ms — sans boucle) ─────────────────────────
@@ -1887,30 +2105,220 @@ function updateFE() {{
     }});
 
     // ── KPI blended : FE + DOP + UC (pondéré par allocations réelles)
-    let sumW_a1 = 0, sumW_a3 = 0, totW = 0, totW3 = 0;
+    const sums = {{ a1: [0,0], a3: [0,0], a5: [0,0], vol: [0,0] }};
     pd.funds.forEach((f, i) => {{
       const rank = i + 1;
       const chk  = document.getElementById('chk-' + pd.cc + '-' + rank);
       if (!chk || !chk.checked) return;
       const w = actualAllocs[rank] || 0;
-      if (f.a1 != null && w > 0) {{ sumW_a1 += w * f.a1; totW  += w; }}
-      if (f.a3 != null && w > 0) {{ sumW_a3 += w * f.a3; totW3 += w; }}
+      if (w <= 0) return;
+      ['a1','a3','a5','vol'].forEach(k => {{
+        if (f[k] != null) {{ sums[k][0] += w * f[k]; sums[k][1] += w; }}
+      }});
     }});
-    if (totW  === 0) totW  = 100;
-    if (totW3 === 0) totW3 = 100;
-    const blend_a1 = feAlloc / 100 * fePerfs.a1 + dopAlloc / 100 * dopPerfs.a1 + ucScale * (sumW_a1 / totW);
-    const blend_a3 = feAlloc / 100 * fePerfs.a3 + dopAlloc / 100 * dopPerfs.a3 + ucScale * (sumW_a3 / totW3);
+    // Renormalisation : les fonds sans historique sur l'horizon sont exclus du calcul
+    const blends = {{}};
+    ['a1','a3','a5'].forEach(k => {{
+      const ucAvg = sums[k][1] > 0 ? sums[k][0] / sums[k][1] : null;
+      blends[k] = ucAvg != null
+        ? feAlloc / 100 * fePerfs[k] + dopAlloc / 100 * dopPerfs[k] + ucScale * ucAvg
+        : null;
+    }});
+    // Volatilité pondérée : FE et DOP ≈ 0 → contribution UC uniquement (approx. hors corrélations)
+    const blend_vol = sums.vol[1] > 0 ? ucScale * (sums.vol[0] / sums.vol[1]) : null;
 
-    const k1 = document.getElementById('kpi-a1-' + pid);
-    const k3 = document.getElementById('kpi-a3-' + pid);
-    if (k1) k1.innerHTML = fmtKpi(blend_a1);
-    if (k3) k3.innerHTML = fmtKpi(blend_a3);
+    // ── Vision 1 an / 3 ans / 5 ans ──────────────────────────────────────────
+    const vis      = window._PTF_VISION || 'a1';
+    const visYears = vis === 'a3' ? 3 : (vis === 'a5' ? 5 : 1);
+    const visLbl   = vis === 'a3' ? '3 Ans' : (vis === 'a5' ? '5 Ans' : '1 An');
+    const main = blends[vis];
+    const ann  = main != null ? (Math.pow(1 + main / 100, 1 / visYears) - 1) * 100 : null;
+
+    const lm = document.getElementById('kpilbl-main-' + pid);
+    const la = document.getElementById('kpilbl-ann-' + pid);
+    if (lm) lm.textContent = 'Perf. pondérée ' + visLbl + (visYears > 1 ? ' (cumulée)' : '');
+    if (la) la.textContent = 'Annualisée (' + visLbl.toLowerCase() + ')';
+    const km = document.getElementById('kpi-main-' + pid);
+    const ka = document.getElementById('kpi-ann-' + pid);
+    const kv = document.getElementById('kpi-vol-' + pid);
+    if (km) km.innerHTML = main != null ? fmtKpi(main) : '<span class="na">—</span>';
+    if (ka) ka.innerHTML = ann != null
+      ? '<span class="' + (ann >= 0 ? 'pos' : 'neg') + '">' + (ann >= 0 ? '+' : '') + ann.toFixed(1).replace('.', ',') + '&nbsp;%/an</span>'
+      : '<span class="na">—</span>';
+    if (kv) kv.innerHTML = blend_vol != null
+      ? blend_vol.toFixed(1).replace('.', ',') + '&nbsp;%'
+      : '<span class="na">—</span>';
+
+    // Mémorise les rendements pondérés pour le simulateur
+    window._PTF_BLENDED = window._PTF_BLENDED || {{}};
+    window._PTF_BLENDED[pid] = {{ a1: blends.a1, a3: blends.a3, a5: blends.a5 }};
   }});
+  if (typeof simSync === 'function') simSync('T');
 }}
 </script>
 </body>
 </html>
 """)
+
+html_parts.append("""<script>
+/* ===================================================================
+   Utilitaires : impression / PDF + simulateur de projection
+   =================================================================== */
+function openPrintDoc(title, rows, tot) {
+  const fmtP = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(2).replace('.',',')+' %';
+  const today = new Date().toLocaleDateString('fr-FR');
+  let trs = rows.map(r => '<tr>'
+    +'<td>'+r.name+(r.isin?' <span class="isin">'+r.isin+'</span>':'')+(r.note?' <span class="isin">— '+r.note+'</span>':'')+'</td>'
+    +'<td style="text-align:center">'+(r.srri||'—')+'</td>'
+    +'<td class="r">'+fmtP(r.ytd)+'</td>'
+    +'<td class="r">'+fmtP(r.a1)+'</td>'
+    +'<td class="r">'+fmtP(r.a3)+'</td>'
+    +'<td class="r">'+fmtP(r.a5)+'</td>'
+    +'<td class="r">'+(r.vol!=null?r.vol.toFixed(1).replace('.',',')+' %':'—')+'</td>'
+    +'<td class="r"><strong>'+(r.alloc!=null?r.alloc.toFixed(1).replace('.',',')+' %':'—')+'</strong></td>'
+    +'</tr>').join('');
+  if (tot && tot.a1 != null) {
+    trs += '<tr class="tot"><td>Total portefeuille (pondéré)</td><td></td><td></td>'
+      +'<td class="r">'+fmtP(tot.a1)+'</td><td class="r">'+fmtP(tot.a3)+'</td><td></td><td></td><td class="r">100 %</td></tr>';
+  }
+  const css = 'body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#1a202c;padding:28px;font-size:12px}'
+    +'h1{font-size:18px;color:#1a3a6b;margin-bottom:2px}'
+    +'.sub{font-size:11px;color:#718096;margin-bottom:18px}'
+    +'table{width:100%;border-collapse:collapse;margin-bottom:16px}'
+    +'th{background:#f0f4f8;text-align:left;padding:7px 8px;font-size:11px;border-bottom:2px solid #3266ad}'
+    +'td{padding:6px 8px;border-bottom:1px solid #e2e8f0}'
+    +'.r{text-align:right}.isin{font-size:10px;color:#a0aec0}'
+    +'.tot td{background:#eef3fb;font-weight:700;border-top:2px solid #3266ad}'
+    +'.legal{font-size:10px;color:#718096;font-style:italic;margin-top:18px;border-top:1px solid #e2e8f0;padding-top:10px}';
+  const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>'+title+'</title>'
+    +'<style>'+css+'</style></head><body>'
+    +'<h1>Le Conservateur — '+title+'</h1>'
+    +'<div class="sub">Édité le '+today+' · Performances Boursorama · Volatilité et allocations indicatives</div>'
+    +'<table><thead><tr><th>Fonds</th><th style="text-align:center">SRRI</th><th class="r">YTD</th><th class="r">1 An</th>'
+    +'<th class="r">3 Ans</th><th class="r">5 Ans</th><th class="r">Volat. 1A</th><th class="r">Allocation</th></tr></thead>'
+    +'<tbody>'+trs+'</tbody></table>'
+    +'<div class="legal">Les performances passées ne préjugent pas des performances futures. '
+    +'L\\'assureur ne s\\'engage que sur le nombre d\\'unités de compte et non sur leur valeur. '
+    +'Document établi à titre informatif — ne constitue pas un conseil en investissement.</div>'
+    +'<scr'+'ipt>window.onload=function(){window.print()}</scr'+'ipt></body></html>';
+  const w = window.open('', '_blank');
+  if (!w) { alert('Autorisez les pop-ups pour imprimer.'); return; }
+  w.document.write(html);
+  w.document.close();
+}
+
+function printPortfolio(pid) {
+  const pd = _PTF_DATA[pid]; if (!pd) return;
+  const feAlloc  = parseInt(document.getElementById('feSlider')?.value)  || 30;
+  const dopAlloc = parseInt(document.getElementById('dopSlider')?.value) || 0;
+  const taux = _getFERate(100 - feAlloc);
+  const rows = [];
+  rows.push({name:'Fonds en Euros', srri:1, ytd:null, a1:taux,
+    a3:(Math.pow(1+taux/100,3)-1)*100, a5:(Math.pow(1+taux/100,5)-1)*100,
+    alloc:feAlloc, note:'Taux 2025 : '+taux.toFixed(2).replace('.',',')+' %'});
+  if (dopAlloc > 0) rows.push({name:'DOP (taux fixe 5,00 %/an)', srri:2, ytd:null, a1:5, a3:15, a5:25, alloc:dopAlloc});
+  pd.funds.forEach((f, i) => {
+    const rank = i + 1;
+    const chk = document.getElementById('chk-'+pd.cc+'-'+rank);
+    if (chk && !chk.checked) return;
+    const pctEl = document.getElementById('pct-'+pd.cc+'-'+rank);
+    let alloc = pctEl ? parseFloat(pctEl.textContent.replace(',','.')) : f.pct;
+    if (isNaN(alloc)) alloc = null;
+    rows.push({name:f.name, srri:f.srri, ytd:f.ytd, a1:f.a1, a3:f.a3, a5:f.a5, vol:f.vol, alloc:alloc});
+  });
+  const tot = (window._PTF_BLENDED||{})[pid] || {};
+  openPrintDoc('Portefeuille type « '+pd.label+' »', rows, tot);
+}
+
+/* ── Vision 1 an / 3 ans / 5 ans ─────────────────────────────────── */
+function setVision(vis) {
+  window._PTF_VISION = vis;
+  ['a1','a3','a5'].forEach(v => {
+    const b = document.getElementById('visBtn-'+v);
+    if (b) b.classList.toggle('active', v === vis);
+  });
+  const sec = document.getElementById('sec_portefeuilles');
+  if (sec) { sec.classList.remove('vis-a1','vis-a3','vis-a5'); sec.classList.add('vis-'+vis); }
+  if (typeof updateFE === 'function') updateFE();
+}
+
+/* ── Simulateur ─────────────────────────────────────────────────── */
+function _activeBlended(prefix) {
+  if (prefix === 'T') {
+    const panel = document.querySelector('.ptf-panel.active');
+    const pid = panel ? panel.id.replace('ptf_','') : null;
+    return pid ? (window._PTF_BLENDED||{})[pid] : null;
+  }
+  const panel = document.querySelector('.perso-panel.active');
+  const pid = panel ? panel.dataset.id : null;
+  return pid ? (window._PERSO_BLENDED||{})[pid] : null;
+}
+
+function simCompute(prefix) {
+  const g = id => document.getElementById('sim'+prefix+'-'+id);
+  if (!g('init')) return;
+  const init    = parseFloat(g('init').value)    || 0;
+  const monthly = parseFloat(g('monthly').value) || 0;
+  const years   = Math.max(1, Math.min(40, parseInt(g('years').value)||10));
+  const rate    = parseFloat(g('rate').value)    || 0;
+  const rm = Math.pow(1+rate/100, 1/12) - 1;
+  let cap = init, invested = init;
+  const yearRows = [];
+  for (let m = 1; m <= years*12; m++) {
+    cap = cap*(1+rm) + monthly; invested += monthly;
+    if (m % 12 === 0) yearRows.push({y:m/12, cap, invested});
+  }
+  const fmtE = v => Math.round(v).toLocaleString('fr-FR') + ' €';
+  const gains = cap - invested;
+  g('kpis').innerHTML =
+    '<div class="sim-kpi"><div class="lbl">Capital projeté ('+years+' ans)</div><div class="val">'+fmtE(cap)+'</div></div>'
+    +'<div class="sim-kpi"><div class="lbl">Total versé</div><div class="val">'+fmtE(invested)+'</div></div>'
+    +'<div class="sim-kpi"><div class="lbl">Gains théoriques</div><div class="val '+(gains>=0?'pos':'neg')+'">'+(gains>=0?'+':'−')+fmtE(Math.abs(gains))+'</div></div>';
+  const step = years > 12 ? Math.ceil(years/12) : 1;
+  let rows = '<thead><tr><th>Année</th><th style="text-align:right">Versé cumulé</th><th style="text-align:right">Capital projeté</th><th style="text-align:right">Gains</th></tr></thead><tbody>';
+  yearRows.forEach(r => {
+    if (r.y % step !== 0 && r.y !== years) return;
+    const gn = r.cap - r.invested;
+    rows += '<tr><td>'+r.y+'</td><td style="text-align:right">'+fmtE(r.invested)+'</td>'
+      +'<td style="text-align:right"><strong>'+fmtE(r.cap)+'</strong></td>'
+      +'<td style="text-align:right" class="'+(gn>=0?'pos':'neg')+'">'+(gn>=0?'+':'−')+fmtE(Math.abs(gn))+'</td></tr>';
+  });
+  g('table').innerHTML = rows + '</tbody>';
+}
+
+function _visionRate(b) {
+  // Rendement annualisé selon la vision active, avec repli sur 1 an
+  const vis = window._PTF_VISION || 'a1';
+  const years = vis === 'a3' ? 3 : (vis === 'a5' ? 5 : 1);
+  let v = b ? b[vis] : null, y = years, lbl = vis === 'a3' ? '3 ans' : (vis === 'a5' ? '5 ans' : '1 an');
+  if (v == null && b && b.a1 != null) { v = b.a1; y = 1; lbl = '1 an'; }
+  if (v == null) return null;
+  return { rate: (Math.pow(1 + v/100, 1/y) - 1) * 100, lbl: lbl };
+}
+
+function simUseActive(prefix) {
+  const r = _visionRate(_activeBlended(prefix));
+  if (!r) { alert('Aucun portefeuille actif ou données insuffisantes.'); return; }
+  document.getElementById('sim'+prefix+'-rate').value = r.rate.toFixed(1);
+  simCompute(prefix);
+}
+
+function simSync(prefix) {
+  const b = _activeBlended(prefix);
+  const hint = document.getElementById('sim'+prefix+'-hint');
+  const r = _visionRate(b);
+  if (hint && r) {
+    hint.textContent = 'Portefeuille affiché — vision '+r.lbl+' : '
+      +(r.rate>=0?'+':'')+r.rate.toFixed(1).replace('.',',')+' %/an annualisé'
+      +' — bouton « Utiliser le portefeuille affiché » pour reprendre ce taux.';
+  }
+  simCompute(prefix);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', ()=>{ simCompute('T'); simCompute('P'); });
+} else { simCompute('T'); simCompute('P'); }
+</script>""")
 
 html_parts.append("""<script>
 /* ===================================================================
@@ -1997,6 +2405,7 @@ const PersoMgr = (function() {
     active = id;
     document.querySelectorAll('.perso-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.id===id));
     document.querySelectorAll('.perso-panel').forEach(p => p.classList.toggle('active', p.dataset.id===id));
+    if (typeof simSync === 'function') simSync('P');
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -2043,18 +2452,20 @@ const PersoMgr = (function() {
 
     let tbody = '';
     if (!p.funds.length) {
-      tbody = '<tr><td colspan="9" class="perso-empty">Aucun fonds sélectionné — cliquez sur "Modifier les fonds"</td></tr>';
+      tbody = '<tr><td colspan="10" class="perso-empty">Aucun fonds sélectionné — cliquez sur "Modifier les fonds"</td></tr>';
     } else {
       tbody += `<tr class="fe-row">
         <td></td><td style="font-size:13px;text-align:center">★</td>
         <td class="fund-name">🏦 Fonds en Euros</td><td>SRRI 1</td>
         <td id="pfe-ytd-${id}">—</td><td id="pfe-a1-${id}">—</td><td id="pfe-a3-${id}">—</td><td id="pfe-a5-${id}">—</td>
+        <td style="text-align:right;color:#a0aec0;font-size:12px">≈0</td>
         <td id="pfe-alloc-${id}"><div class="ptf-pct-bar"><div class="ptf-mini-bar ptf-bar-fe" style="width:${Math.round(feAlloc*2.04)}px"></div><span style="font-size:12px;font-weight:600">${feAlloc}&nbsp;%</span></div></td>
       </tr>`;
       tbody += `<tr class="dop-row">
         <td></td><td style="font-size:13px;text-align:center">★</td>
         <td class="fund-name">💎 DOP</td><td>SRRI 2</td>
         <td id="pdop-ytd-${id}">—</td><td id="pdop-a1-${id}">—</td><td id="pdop-a3-${id}">—</td><td id="pdop-a5-${id}">—</td>
+        <td style="text-align:right;color:#a0aec0;font-size:12px">≈0</td>
         <td id="pdop-alloc-${id}"><span style="color:#cbd5e0;font-size:12px">—</span></td>
       </tr>`;
       p.funds.forEach((fi, idx) => {
@@ -2072,6 +2483,7 @@ const PersoMgr = (function() {
           <td style="text-align:right">${fmtV(fd.a1)}</td>
           <td style="text-align:right">${fmtV(fd.a3)}</td>
           <td style="text-align:right">${fmtV(fd.a5)}</td>
+          <td style="text-align:right;font-size:12px;color:#718096">${fd.vol!=null?fd.vol.toFixed(1).replace('.',',')+'%':'—'}</td>
           <td><div class="alloc-wrap">
             <div class="ptf-pct-bar">
               <div class="ptf-mini-bar ptf-bar-perso" id="perso-bar-${id}-${ik}" style="width:30px"></div>
@@ -2082,6 +2494,17 @@ const PersoMgr = (function() {
           </div></td>
         </tr>`;
       });
+      tbody += `<tr class="perso-total-row">
+        <td></td><td style="text-align:center">Σ</td>
+        <td class="fund-name">Total portefeuille</td>
+        <td style="text-align:center" id="ptot-srri-${id}">—</td>
+        <td style="text-align:right" id="ptot-ytd-${id}">—</td>
+        <td style="text-align:right" id="ptot-a1-${id}">—</td>
+        <td style="text-align:right" id="ptot-a3-${id}">—</td>
+        <td style="text-align:right" id="ptot-a5-${id}">—</td>
+        <td style="text-align:right;font-size:12px" id="ptot-vol-${id}">—</td>
+        <td id="ptot-alloc-${id}">—</td>
+      </tr>`;
     }
 
     // Onglets de portefeuille (tous les portefeuilles, celui-ci actif)
@@ -2099,16 +2522,20 @@ const PersoMgr = (function() {
               <th rowspan="2" style="font-size:11px">#</th>
               <th rowspan="2">Fonds</th>
               <th rowspan="2" style="text-align:center">SRRI</th>
-              <th colspan="5" style="padding:4px 6px 4px 6px;border-bottom:1px solid #e2e8f0">
+              <th colspan="6" style="padding:4px 6px 4px 6px;border-bottom:1px solid #e2e8f0">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap">
                   <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
                     ${tabBtns}
                   </div>
-                  <div style="display:flex;gap:4px;align-items:center">
+                  <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
                     <button class="perso-action-btn" onclick="PersoMgr.rename('${id}')">✏️ Renommer</button>
                     <button class="perso-action-btn primary" onclick="PersoMgr.openSelector('${id}')">🔍 Modifier</button>
-                    <button class="perso-action-btn" onclick="PersoMgr.duplicate('${id}')">📋</button>
-                    <button class="perso-action-btn danger" onclick="PersoMgr.deletePortfolio('${id}')">🗑️</button>
+                    <button class="perso-action-btn" onclick="PersoMgr.duplicate('${id}')" title="Dupliquer">📋</button>
+                    <button class="perso-action-btn" onclick="PersoMgr.exportJson('${id}')" title="Exporter en fichier JSON">💾</button>
+                    <button class="perso-action-btn" onclick="PersoMgr.importJson()" title="Importer un fichier JSON">📥</button>
+                    <button class="perso-action-btn" onclick="PersoMgr.shareLink('${id}')" title="Copier un lien de partage">🔗</button>
+                    <button class="perso-action-btn" onclick="PersoMgr.printPerso('${id}')" title="Imprimer / PDF">🖨️</button>
+                    <button class="perso-action-btn danger" onclick="PersoMgr.deletePortfolio('${id}')" title="Supprimer">🗑️</button>
                   </div>
                 </div>
               </th>
@@ -2118,6 +2545,7 @@ const PersoMgr = (function() {
               <th style="text-align:right;font-size:11px">1 An</th>
               <th style="text-align:right;font-size:11px">3 Ans</th>
               <th style="text-align:right;font-size:11px">5 Ans</th>
+              <th style="text-align:right;font-size:11px" title="Volatilité annualisée 12 mois">Volat.</th>
               <th style="font-size:11px">Allocation</th>
             </tr>
           </thead>
@@ -2170,6 +2598,8 @@ const PersoMgr = (function() {
     const overflow=manSum>ucPct;
     const eachAuto=autoCnt>0?Math.round(autoSpace/autoCnt*10)/10:0;
 
+    const sums={ytd:[0,0],a1:[0,0],a3:[0,0],a5:[0,0],vol:[0,0]};
+    let ucAllocSum=0, srriW=feAlloc*1+dopAlloc*2;
     p.funds.forEach(fi=>{
       const ik=isinKey(fi.isin);
       const {sel,isM,mv}=meta[ik]||{};
@@ -2184,7 +2614,45 @@ const PersoMgr = (function() {
       const newPct=isM?mv:eachAuto;
       if(barEl) barEl.style.width=Math.round(newPct*3)+'px';
       if(pctEl) pctEl.textContent=newPct.toFixed(1)+' %';
+      // Accumulation pour la ligne Total
+      const fd=getFund(fi.isin);
+      if(fd&&newPct>0){
+        ucAllocSum+=newPct;
+        srriW+=(fd.srri||4)*newPct;
+        ['ytd','a1','a3','a5','vol'].forEach(k=>{
+          if(fd[k]!=null){sums[k][0]+=newPct*fd[k];sums[k][1]+=newPct;}
+        });
+      }
     });
+
+    // ── Ligne Total : perfs pondérées FE + DOP + UC ──────────────────────────
+    const ucScale=ucPct/100;
+    const tot={};
+    ['ytd','a1','a3','a5'].forEach(k=>{
+      const ucAvg=sums[k][1]>0?sums[k][0]/sums[k][1]:null;
+      tot[k]=feAlloc/100*feP[k]+dopAlloc/100*dopP[k]+(ucAvg!=null?ucScale*ucAvg:0);
+      const el=document.getElementById('ptot-'+k+'-'+pid);
+      if(el) el.innerHTML=fmt(tot[k]);
+    });
+    const volAvg=sums.vol[1]>0?ucScale*(sums.vol[0]/sums.vol[1]):null;
+    const volEl=document.getElementById('ptot-vol-'+pid);
+    if(volEl) volEl.innerHTML=volAvg!=null?volAvg.toFixed(1).replace('.',',')+'&nbsp;%':'<span class="na">—</span>';
+    const allocTotal=feAlloc+dopAlloc+ucAllocSum;
+    const allocEl=document.getElementById('ptot-alloc-'+pid);
+    if(allocEl){
+      const cls=Math.abs(allocTotal-100)<0.5?'alloc-ok':(allocTotal>100?'alloc-bad':'alloc-warn');
+      const icon=Math.abs(allocTotal-100)<0.5?'✓':'⚠';
+      allocEl.innerHTML='<span class="'+cls+'" style="font-size:13px;font-weight:700">'+icon+' '+allocTotal.toFixed(1).replace('.',',')+'&nbsp;%</span>';
+    }
+    const srriEl=document.getElementById('ptot-srri-'+pid);
+    if(srriEl){
+      const base=feAlloc+dopAlloc+ucAllocSum;
+      srriEl.innerHTML=base>0?'<span title="SRRI moyen pondéré">'+(srriW/base).toFixed(1).replace('.',',')+'</span>':'—';
+    }
+    // Mémorise pour le simulateur
+    window._PERSO_BLENDED=window._PERSO_BLENDED||{};
+    window._PERSO_BLENDED[pid]={a1:tot.a1,a3:tot.a3,a5:tot.a5};
+    if(typeof simSync==='function') simSync('P');
   }
 
   function setEncours(id, high) {
@@ -2251,10 +2719,102 @@ const PersoMgr = (function() {
     closeSelector(); save(); render();
   }
 
-  function init() { load(); render(); }
+  // ── Export / Import / Partage ────────────────────────────────────────────
+  function exportJson(id) {
+    const p = state.portfolios.find(x=>x.id===id); if (!p) return;
+    save();
+    const payload = {version:1, exported:new Date().toISOString().slice(0,10),
+      label:p.label, feAlloc:p.feAlloc, dopAlloc:p.dopAlloc, highEncours:p.highEncours, funds:p.funds};
+    const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'portefeuille-'+p.label.replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase()+'.json';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 500);
+  }
+
+  function importJson() {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.json,application/json';
+    inp.onchange = () => {
+      const f = inp.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          const d = JSON.parse(r.result);
+          if (!d || !Array.isArray(d.funds)) throw new Error('format');
+          const p = mkNew(d.label || 'Portefeuille importé');
+          p.feAlloc = parseInt(d.feAlloc)||30;
+          p.dopAlloc = parseInt(d.dopAlloc)||0;
+          p.highEncours = !!d.highEncours;
+          p.funds = d.funds.filter(fi=>fi && typeof fi.isin==='string')
+            .map(fi=>({isin:fi.isin, manualAlloc:fi.manualAlloc??null, enabled:fi.enabled!==false}));
+          state.portfolios.push(p); active = p.id;
+          save(); render();
+        } catch(e) { alert('Fichier invalide — export JSON attendu.'); }
+      };
+      r.readAsText(f);
+    };
+    inp.click();
+  }
+
+  function shareLink(id) {
+    const p = state.portfolios.find(x=>x.id===id); if (!p) return;
+    save();
+    const payload = {label:p.label, feAlloc:p.feAlloc, dopAlloc:p.dopAlloc, highEncours:p.highEncours, funds:p.funds};
+    const data = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const url = location.origin + location.pathname + '#ptf=' + data;
+    const done = () => alert('Lien copié !\\nEnvoyez-le : le portefeuille s\\'ajoutera automatiquement à l\\'ouverture de la page.');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, ()=>prompt('Copiez ce lien :', url));
+    } else { prompt('Copiez ce lien :', url); }
+  }
+
+  function checkHash() {
+    const m = location.hash.match(/#ptf=(.+)/);
+    if (!m) return false;
+    try {
+      const d = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+      if (!d || !Array.isArray(d.funds)) return false;
+      const p = mkNew((d.label || 'Portefeuille partagé') + ' (reçu)');
+      p.feAlloc = parseInt(d.feAlloc)||30;
+      p.dopAlloc = parseInt(d.dopAlloc)||0;
+      p.highEncours = !!d.highEncours;
+      p.funds = d.funds.filter(fi=>fi && typeof fi.isin==='string')
+        .map(fi=>({isin:fi.isin, manualAlloc:fi.manualAlloc??null, enabled:fi.enabled!==false}));
+      state.portfolios.push(p); active = p.id;
+      history.replaceState(null, '', location.pathname + location.search);
+      save();
+      return true;
+    } catch(e) { return false; }
+  }
+
+  // ── Impression / PDF ─────────────────────────────────────────────────────
+  function printPerso(id) {
+    const p = state.portfolios.find(x=>x.id===id); if (!p) return;
+    save();
+    const feAlloc = p.feAlloc||30, dopAlloc = p.dopAlloc||0;
+    const taux = _getFERate(100-feAlloc);
+    const rows = [];
+    rows.push({name:'Fonds en Euros', srri:1, ytd:null, a1:taux, a3:(Math.pow(1+taux/100,3)-1)*100, a5:(Math.pow(1+taux/100,5)-1)*100, alloc:feAlloc, note:'Taux 2025 : '+taux.toFixed(2).replace('.',',')+' %'});
+    if (dopAlloc>0) rows.push({name:'DOP (taux fixe 5,00 %/an)', srri:2, ytd:null, a1:5, a3:15, a5:25, alloc:dopAlloc});
+    p.funds.forEach(fi=>{
+      if (fi.enabled===false) return;
+      const fd = getFund(fi.isin); if (!fd) return;
+      const ik = isinKey(fi.isin);
+      const pctEl = document.getElementById('perso-pct-'+p.id+'-'+ik);
+      const alloc = pctEl ? parseFloat(pctEl.textContent.replace(',','.')) : null;
+      rows.push({name:fd.name, isin:fd.isin, srri:fd.srri, ytd:fd.ytd, a1:fd.a1, a3:fd.a3, a5:fd.a5, vol:fd.vol, alloc:isNaN(alloc)?null:alloc});
+    });
+    const tot = (window._PERSO_BLENDED||{})[p.id] || {};
+    openPrintDoc('Portefeuille « '+p.label+' »', rows, tot);
+  }
+
+  function init() { load(); checkHash(); render(); }
 
   return {init, switchTo, createNew, duplicate, deletePortfolio, rename,
-          openSelector, closeSelector, applySelector, updateAllocs, save, setEncours, filterSel};
+          openSelector, closeSelector, applySelector, updateAllocs, save, setEncours, filterSel,
+          exportJson, importJson, shareLink, printPerso};
 })();
 
 if (document.readyState === 'loading') {

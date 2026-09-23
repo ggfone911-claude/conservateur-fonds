@@ -8,19 +8,19 @@
     "etapes_en_echec": [],
     "etapes_sautees": [],
     "fonds": 92,
-    "last_success": "2026-09-22T11:09:49Z",
-    "perf_last_updated": "2026-09-22",
-    "run_finished": "2026-09-22T11:09:49Z",
-    "run_id": "35719634426",
-    "run_number": "116",
-    "run_started": "2026-09-22T11:06:47Z",
-    "run_url": "https://github.com/ggfone911-claude/conservateur-fonds/actions/runs/35719634426",
+    "last_success": "2026-09-23T10:59:56Z",
+    "perf_last_updated": "2026-09-23",
+    "run_finished": "2026-09-23T10:59:56Z",
+    "run_id": "35851677906",
+    "run_number": "117",
+    "run_started": "2026-09-23T10:56:56Z",
+    "run_url": "https://github.com/ggfone911-claude/conservateur-fonds/actions/runs/35851677906",
     "status": "success",
     "temoin_FR0013287315": {
       "a1": 2.02,
       "a5": 11.13,
-      "vl": 646.7
+      "vl": 646.74
     },
-    "vl_plus_recente": "2026-09-21"
+    "vl_plus_recente": "2026-09-22"
   }
 }

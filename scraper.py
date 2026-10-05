@@ -187,35 +187,51 @@ def _clean_number(s):
         return None
 
 
+def _perf_from_pairs(pairs):
+    """[(libelle de periode, valeur)] -> {ytd, m1, m6, a1, a3, a5, a10}"""
+    perf = {}
+    for key, rx in _COL_KEYS:
+        perf[key] = next((_clean_number(v) for lab, v in pairs if rx.search(lab)), None)
+    return perf
+
+
 def parse_perf_tables(html):
     """Renvoie les jeux de performances trouves, dans l'ordre du HTML.
 
-    Structure Boursorama : <thead> de <th scope=col>, puis une ligne dont la
-    premiere cellule est un <th scope=row>FONDS</th> suivie des <td> de valeurs.
-    Le tableau « fonds partenaires » contient aussi « 1er Janv » mais pas de
-    ligne FONDS : il est donc naturellement ignore.
+    Boursorama a servi deux mises en page du tableau « PERFORMANCES DU FONDS » :
+
+    • VERTICALE (depuis le 04-05/10/2026) : en-tetes FONDS / CATEGORIE / RANG*,
+      puis une ligne par periode dont la premiere cellule est le libelle
+      (<th scope=row>1er JANV.</th>) suivie de la valeur du fonds.
+    • HORIZONTALE (jusqu'au 03/10/2026) : en-tetes = periodes, puis une ligne
+      dont la premiere cellule est FONDS.
+
+    Les deux sont reconnues. Le tableau « fonds partenaires » (en-tete LIBELLE,
+    sans colonne ni ligne FONDS) est ignore dans les deux cas.
     """
     out = []
     for tbl in _TABLE_RE.findall(html):
+        if not re.search(r"1ER\s*JANV", _text(tbl).upper()):
+            continue
         thead = _THEAD_RE.search(tbl)
         head_src = thead.group(0) if thead else tbl
         heads = [_text(h).upper() for h in _CELL_RE.findall(head_src)]
-        if not any("1ER JANV" in h for h in heads):
-            continue
         body = tbl[thead.end():] if thead else tbl
-        fonds_row = None
-        for tr in _TR_RE.findall(body):
-            cells = [_text(c) for c in _CELL_RE.findall(tr)]
-            if cells and cells[0].upper() == "FONDS":
-                fonds_row = cells
-                break
-        if not fonds_row:
+        rows = [[_text(c) for c in _CELL_RE.findall(tr)] for tr in _TR_RE.findall(body)]
+
+        # 1) Mise en page verticale : une colonne « FONDS » dans l'en-tete
+        if "FONDS" in heads:
+            col = heads.index("FONDS")
+            pairs = [(r[0].upper(), r[col]) for r in rows if len(r) > col]
+            perf = _perf_from_pairs(pairs)
+            if any(v is not None for v in perf.values()):
+                out.append(perf)
             continue
-        pairs = list(zip(heads, fonds_row))   # en-tete <-> valeur, index par index
-        perf = {}
-        for key, rx in _COL_KEYS:
-            perf[key] = next((_clean_number(v) for h, v in pairs if rx.search(h)), None)
-        out.append(perf)
+
+        # 2) Mise en page horizontale : une ligne « FONDS »
+        fonds_row = next((r for r in rows if r and r[0].upper() == "FONDS"), None)
+        if fonds_row and any("1ER JANV" in h for h in heads):
+            out.append(_perf_from_pairs(list(zip(heads, fonds_row))))
     return out
 
 

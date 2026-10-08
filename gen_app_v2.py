@@ -162,6 +162,16 @@ _RAW = [
     ("FR0011253624","0P00017T6E","-3.62,-0.22,-4.02,11.52,39.66,34.94,139.64,"),
     ("LU2661119755","0P0001RR16",""),
     ("FR0010547067","MP-804104",""),
+    ("FR0010380675","MP-807639",""),
+    ("LU0104884860","MP-308138",""),
+    ("LU0270904781","MP-234204",""),
+    ("LU0255976994","MP-216931",""),
+    ("LU1833929729","0P0001E1MW",""),
+    ("LU1317704051","0P000171LG",""),
+    ("FR0014014FK3","0P0001YHXX",""),
+    ("IE000S1JLOI7","0P0001S03R",""),
+    ("FR0010871830","MP-642855",""),
+    ("FR0013367265","0P0001F34F",""),
 ]
 
 BOURSO_DATA = {}
@@ -226,6 +236,7 @@ CATEGORIES = [
     {"isin":"FR0010038257","name":"Conservateur Emploi Durable (C)","mgr":"Palatine AM","vl":285.15,"ytd":-1.51,"srri":6},
     {"isin":"LU1490785091","name":"DNCA Invest SRI Norden Europe A","mgr":"DNCA Finance","vl":206.41,"ytd":1.11,"srri":6},
     {"isin":"FR0010547067","name":"Echiquier Value Europe (P)","mgr":"Financière de l'Echiquier","vl":377.14,"ytd":12.21,"srri":6},
+    {"isin":"FR0014014FK3","name":"Lazard Sovereignty Europe (RC)","mgr":"Lazard Frères Gestion","vl":119.23,"ytd":16.16,"srri":6},
   ]},
   {"id":"actions_int","label":"Actions Internationales","color":"#fd7e14","funds":[
     {"isin":"LU0592698954","name":"Carmignac Portf. Emerging Patrimoine (A)","mgr":"Carmignac Gestion","vl":176.04,"ytd":11.30,"srri":6},
@@ -235,11 +246,21 @@ CATEGORIES = [
     {"isin":"FR0000974149","name":"Oddo BHF Avenir Europe (CR)","mgr":"Oddo AM","vl":711.53,"ytd":2.74,"srri":6},
     {"isin":"FR0000295230","name":"Comgest Renaissance Europe (C)","mgr":"Comgest AM","vl":230.29,"ytd":-4.87,"srri":6},
     {"isin":"LU2661119755","name":"DNCA Invest Évolutif (C)","mgr":"DNCA Finance","vl":129.74,"ytd":-0.50,"srri":6},
+    {"isin":"FR0010380675","name":"Lazard Actions Émergentes (RC)","mgr":"Lazard Frères Gestion","vl":3195.58,"ytd":31.93,"srri":6},
+    {"isin":"LU0104884860","name":"Pictet - Water (P)","mgr":"Pictet AM","vl":497.37,"ytd":-4.5,"srri":6},
+    {"isin":"LU0270904781","name":"Pictet - Security (P)","mgr":"Pictet AM","vl":481.94,"ytd":39.0,"srri":6},
+    {"isin":"LU0255976994","name":"Pictet - Asian Equities Ex Japan (P)","mgr":"Pictet AM","vl":423.2,"ytd":34.15,"srri":6},
+    {"isin":"LU1833929729","name":"ODDO BHF US Equity Trend (CR)","mgr":"Oddo AM","vl":306.78,"ytd":16.25,"srri":6},
+    {"isin":"IE000S1JLOI7","name":"Lazard Japanese Strategic Equity (B Acc EUR H)","mgr":"Lazard Fund Managers (Ireland)","vl":162.02,"ytd":None,"srri":6,
+     "pending":"En attente — Boursorama ne publie ni date de VL ni performances pour cette part"},
   ]},
   {"id":"flexibles","label":"Flexibles","color":"#6f42c1","funds":[
     {"isin":"LU2147879543","name":"Tikehau International Cross Assets (R)","mgr":"Tikehau IM","vl":757.12,"ytd":0.79,"srri":4},
     {"isin":"FR0011175652","name":"Conservateur Reverso (C)","mgr":"Conservateur Gestion Valor","vl":77.25,"ytd":0.56,"srri":4},
     {"isin":"FR0011253624","name":"R-co Valor (C)","mgr":"Rothschild et Cie Gestion","vl":3817.19,"ytd":-4.94,"srri":5},
+    {"isin":"LU1317704051","name":"Carmignac Pf Long-Short European Equities (A)","mgr":"Carmignac Gestion","vl":196.3,"ytd":6.28,"srri":3},
+    {"isin":"FR0010871830","name":"Moneta Long Short (R)","mgr":"Moneta AM","vl":205.25,"ytd":3.61,"srri":3},
+    {"isin":"FR0013367265","name":"R-co Valor Balanced (C)","mgr":"Rothschild & Co AM","vl":146.46,"ytd":-3.13,"srri":4},
   ]},
 ]
 
@@ -400,6 +421,9 @@ th.sorted-desc::after{content:" ↓"}
 td{padding:9px 12px;border-bottom:1px solid #f0f4f8;vertical-align:middle;white-space:nowrap}
 tr:hover td{background:#f7fafc}
 tr.top3 td:first-child{font-weight:700}
+tr.pending-row td{background:#fff4e0 !important}
+tr.pending-row td:first-child{box-shadow:inset 4px 0 0 #f59e0b}
+.pending-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;background:#f59e0b;color:#fff;font-size:10px;font-weight:700;vertical-align:middle;cursor:help}
 .pos{color:#22863a;font-weight:600}
 .neg{color:#c0392b;font-weight:600}
 .neu{color:#718096}
@@ -493,6 +517,8 @@ tr.top3 td:first-child{font-weight:700}
 .chk-fund{width:15px;height:15px;cursor:pointer;accent-color:#4a90d9;flex-shrink:0}
 .uc-row.deselected>td{opacity:0.35}
 .uc-row.deselected .fund-name{text-decoration:line-through;color:#a0aec0}
+.uc-row.pending-row.deselected>td{opacity:0.8}
+.uc-row.pending-row.deselected .fund-name{text-decoration:none;color:#92400e}
 .alloc-wrap{display:flex;align-items:center;gap:4px}
 .manual-alloc{width:38px;font-size:11px;border:1px solid #e2e8f0;border-radius:3px;padding:1px 3px;text-align:center;color:#718096;background:transparent;-moz-appearance:textfield}
 .manual-alloc::-webkit-outer-spin-button,.manual-alloc::-webkit-inner-spin-button{-webkit-appearance:none}
@@ -832,9 +858,13 @@ for i, cat in enumerate(CATEGORIES):
         bid = f.get("bid")
         srri = f.get("srri", "—")
         bourso_cell = f'<a href="{bourso_url(bid)}" target="_blank" class="bourso-link">Voir →</a>' if bid else '<span class="na">—</span>'
+        _pend = f.get("pending")
+        if _pend:
+            top3_cls = (top3_cls + " pending-row").strip()
+        _pend_badge = f'<span class="pending-badge" title="{_pend}">En attente</span>' if _pend else ""
         html_parts.append(f'''<tr class="{top3_cls}">
   <td data-val="{rank+1}">{medal(rank)}</td>
-  <td class="fund-name" data-val="{f['name']}">{"<a href='" + bourso_url(bid) + "' target='_blank' class='fund-name-link'>" + f['name'] + "</a>" if bid else f["name"]}<br><span class="isin-cell">{f["isin"]}</span></td>
+  <td class="fund-name" data-val="{f['name']}">{"<a href='" + bourso_url(bid) + "' target='_blank' class='fund-name-link'>" + f['name'] + "</a>" if bid else f["name"]}{_pend_badge}<br><span class="isin-cell">{f["isin"]}</span></td>
   <td style="text-align:center" data-val="{srri}"><span class="srri-badge srri-{srri}">{srri}</span></td>
   <td style="text-align:right" data-val="{f['vl'] or 0}">{fmt_vl(f["vl"])}</td>
   {perf_td(f, "ytd")}
@@ -859,22 +889,24 @@ _PORTFOLIOS_DEF = [
         "id": "pru", "label": "Prudent", "emoji": "🔵",
         "range": "SRRI 1–3", "color_cls": "pru",
         "desc": "Horizon 3–5 ans · Préservation du capital · Rendement cible ~2–3%/an",
-        "note": "34% SRRI1 (monétaire) · 18% SRRI2 (oblig. horizon) · 48% SRRI3 (obligataire)",
+        "note": "31% SRRI1 (monétaire) · 15% SRRI2 (oblig. horizon) · 54% SRRI3 (obligataire & long-short)",
         "funds": [
-            ("FR0013287315", 12), # Palatine Monétaire Court Terme (R)
+            ("FR0013287315", 10), # Palatine Monétaire Court Terme (R)
             ("FR0011461326", 10), # Conservateur Oblig. CT (C)
-            ("LU1585265066", 12), # TF - Tikehau Short Duration (R)
-            ("FR001400PKZ3", 18), # Conservateur Horizon 2031 (I)
-            ("FR0010564328", 14), # Conservateur Oblig. MT (C)
-            ("LU0284394235", 17), # DNCA Invest - Eurose (A)
-            ("LU1694790202", 17), # DNCA Invest Flex Inflation
+            ("LU1585265066", 11), # TF - Tikehau Short Duration (R)
+            ("FR001400PKZ3", 15), # Conservateur Horizon 2031 (I)
+            ("FR0010564328", 12), # Conservateur Oblig. MT (C)
+            ("LU0284394235", 14), # DNCA Invest - Eurose (A)
+            ("LU1694790202", 14), # DNCA INVEST Flex Inflation
+            ("LU1317704051", 7),  # Carmignac Pf Long-Short European Equities (A) — ajout 08/10/2026
+            ("FR0010871830", 7),  # Moneta Long Short (R) — ajout 08/10/2026
         ]
     },
     {
         "id": "equ", "label": "Équilibré", "emoji": "🟢",
         "range": "SRRI 1–5", "color_cls": "equ",
         "desc": "Horizon 5–7 ans · Croissance modérée · Rendement cible ~7–9%/an",
-        "note": "4% SRRI2 (oblig. horizon) · 12% SRRI3 (obligataire) · 64% SRRI4 (diversifiés & flexibles) · 20% SRRI5 (actions flexibles / immobilier)",
+        "note": "4% SRRI2 (oblig. horizon) · 12% SRRI3 (obligataire) · 66% SRRI4 (diversifiés & flexibles) · 18% SRRI5 (actions flexibles / immobilier)",
         "funds": [
             ("FR001400PKZ3", 4),  # Conservateur Horizon 2031 (I)
             ("LU0284394235", 12), # DNCA Invest - Eurose (A)
@@ -886,10 +918,11 @@ _PORTFOLIOS_DEF = [
             ("LU2147879543", 6),  # Tikehau International Cross Assets (R)
             ("FR0011199314", 4),  # Conservateur Immo-Or (C)
             ("FR0011253624", 8),  # R-co Valor (C)
-            ("FR0013256930", 8),  # Conservateur Actions Flexibles (C)
-            ("FR0011175652", 6),  # Conservateur Reverso (C)
-            ("FR0013087152", 6),  # Conservateur Rendement Flexible (C)
+            ("FR0013256930", 6),  # Conservateur Actions Flexibles (C)
+            ("FR0011175652", 4),  # Conservateur Reverso (C)
+            ("FR0013087152", 4),  # Conservateur Rendement Flexible (C)
             ("FR0000989915", 4),  # Oddo BHF Immobilier (CR)
+            ("FR0013367265", 6),  # R-co Valor Balanced (C) — ajout 08/10/2026
         ]
     },
     {
@@ -899,20 +932,27 @@ _PORTFOLIOS_DEF = [
         "note": "6% SRRI4 (diversifiés & flexibles) · 94% SRRI6 (actions)",
         "funds": [
             ("LU0512124107", 6),  # DNCA Invest - Convertibles (B)
-            ("FR0010148981", 10), # Carmignac Investissement (A)
-            ("FR0010564229", 10), # Conservateur Actions Monde (C)
-            ("FR0010863688", 8),  # Echiquier Positive Impact (A)
-            ("FR0000295230", 8),  # Comgest Renaissance Europe (C)
-            ("LU0870553020", 7),  # DNCA Invest SRI Europe Growth (A)
-            ("LU1490785091", 6),  # DNCA Invest SRI Norden Europe A
-            ("FR0000974149", 7),  # Oddo BHF Avenir Europe (CR)
-            ("FR0014008EI2", 7),  # Conservateur Actions Euro (C)
-            ("FR0007076930", 6),  # Centifolia (C)
-            ("FR0000989899", 5),  # Oddo BHF Avenir (CR)
-            ("FR0010547067", 5),  # Echiquier Value Europe (P) — nouveau
-            ("FR0010298596", 5),  # Moneta Multi Caps (C)
-            ("FR0010547869", 5),  # SEXTANT PME-A
-            ("LU2661119755", 5),  # DNCA Invest Évolutif (C) — nouveau
+            ("FR0010148981", 7),  # Carmignac Investissement (A)
+            ("FR0010564229", 7),  # Conservateur Actions Monde (C)
+            ("FR0010863688", 6),  # Echiquier Positive Impact (A)
+            ("FR0000295230", 6),  # Comgest Renaissance Europe (C)
+            ("LU0870553020", 5),  # DNCA Invest SRI Europe Growth (A)
+            ("LU1490785091", 4),  # DNCA Invest SRI Norden Europe A
+            ("FR0000974149", 5),  # Oddo BHF Avenir Europe (CR)
+            ("FR0014008EI2", 5),  # Conservateur Actions Euro (C)
+            ("FR0007076930", 4),  # Centifolia (C)
+            ("FR0000989899", 3),  # Oddo BHF Avenir (CR)
+            ("FR0010547067", 4),  # Echiquier Value Europe (P)
+            ("FR0010298596", 4),  # Moneta Multi Caps (C)
+            ("FR0010547869", 3),  # SEXTANT PME-A
+            ("LU2661119755", 5),  # DNCA Invest Évolutif (C)
+            ("LU1833929729", 5),  # ODDO BHF US Equity Trend (CR) — ajout 08/10/2026
+            ("FR0010380675", 4),  # Lazard Actions Émergentes (RC) — ajout 08/10/2026
+            ("LU0270904781", 4),  # Pictet - Security (P) — ajout 08/10/2026
+            ("LU0255976994", 4),  # Pictet - Asian Equities Ex Japan (P) — ajout 08/10/2026
+            ("LU0104884860", 3),  # Pictet - Water (P) — ajout 08/10/2026
+            ("IE000S1JLOI7", 3),  # Lazard Japanese Strategic Equity (B Acc EUR H) — ajout 08/10/2026
+            ("FR0014014FK3", 3),  # Lazard Sovereignty Europe (RC) — ajout 08/10/2026
         ]
     },
 ]
@@ -929,6 +969,9 @@ def _fmt_ptf_val(v):
         return "—"
     s = f"{v:+.2f}%".replace(".", ",")
     return s.replace("-", "−")
+
+# Fonds « en attente » : affichés en couleur, décochés par défaut (poids redistribué)
+_PENDING_NAMES = {_esc_html(f["name"]): f["pending"] for cat in CATEGORIES for f in cat["funds"] if f.get("pending")}
 
 _PORTFOLIOS_DATA = []
 for _pdef in _PORTFOLIOS_DEF:
@@ -1149,10 +1192,14 @@ for pi, ptf in enumerate(_PORTFOLIOS_DATA):
         _vol_html = f'{vol:.1f}%'.replace(".", ",") if vol is not None else '<span class="na">—</span>'
         _mdd_html = (f'<span class="neg">{mdd:.1f}%</span>'.replace(".", ",") if mdd is not None and mdd < 0
                      else ('0,0%' if mdd is not None else '<span class="na">—</span>'))
-        html_parts.append(f'''<tr class="uc-row ftype-{srri}" data-pct="{pct}" data-ytd="{_dv(_ytd_f)}" data-a1="{_dv(_a1_f)}" data-a3="{_dv(_a3_f)}" data-a5="{_dv(_a5_f)}">
-  <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-{cc}-{rank}" checked onchange="updateFE()"></td>
+        _pend = _PENDING_NAMES.get(name)
+        _pcls = " pending-row" if _pend else ""
+        _pchk = "" if _pend else "checked"
+        _pbadge = f'<span class="pending-badge" title="{_pend}">En attente</span>' if _pend else ""
+        html_parts.append(f'''<tr class="uc-row ftype-{srri}{_pcls}" data-pct="{pct}" data-ytd="{_dv(_ytd_f)}" data-a1="{_dv(_a1_f)}" data-a3="{_dv(_a3_f)}" data-a5="{_dv(_a5_f)}">
+  <td style="text-align:center;padding:0 4px"><input type="checkbox" class="chk-fund" id="chk-{cc}-{rank}" {_pchk} onchange="updateFE()"></td>
   <td style="font-size:11px;color:#a0aec0">{rank}</td>
-  <td class="fund-name">{name}<span class="ftype-badge ftype-badge-{srri}">{_ftype_lbl}</span></td>
+  <td class="fund-name">{name}<span class="ftype-badge ftype-badge-{srri}">{_ftype_lbl}</span>{_pbadge}</td>
   <td style="text-align:center"><span class="srri-badge" style="background:{sc}">{srri}</span></td>
   <td style="text-align:right">{_ptf_perf(ytd)}</td>
   <td style="text-align:right">{_ptf_perf(a1)}</td>

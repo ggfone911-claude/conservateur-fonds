@@ -441,7 +441,24 @@ tr.pending-row td:first-child{box-shadow:inset 4px 0 0 #f59e0b}
 .view-tab:hover:not(.active){border-color:#3266ad;color:#3266ad}
 .view-tab.active{background:#3266ad;color:#fff;border-color:#3266ad}
 .filter-bar label{font-size:12px;font-weight:600;color:#4a5568;white-space:nowrap}
-.search-input{border:1px solid #e2e8f0;border-radius:8px;padding:6px 14px;font-size:13px;width:220px;outline:none;color:#1a202c}
+.search-input{border:1px solid #e2e8f0;border-radius:8px;padding:7px 14px;font-size:13px;width:320px;max-width:100%;outline:none;color:#1a202c}
+.search-wrap{position:relative;flex:0 1 340px;min-width:200px}
+.search-wrap .search-input{width:100%}
+.search-suggest{display:none;position:absolute;top:calc(100% + 4px);left:0;width:min(600px,calc(100vw - 32px));background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,.15);z-index:50;max-height:380px;overflow-y:auto;padding:4px}
+.search-suggest.open{display:block}
+.sg-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;cursor:pointer}
+.sg-item:hover,.sg-item.sel{background:#eef4fc}
+.sg-main{flex:1;min-width:0}
+.sg-name{font-size:13px;font-weight:600;color:#1a202c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-sub{font-size:11px;color:#718096;font-family:ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-cat{font-size:11px;color:#4a5568;white-space:nowrap}
+.sg-vl{font-size:12px;font-weight:600;color:#1a202c;white-space:nowrap;min-width:72px;text-align:right}
+.sg-empty{padding:10px;font-size:12px;color:#718096}
+.sg-all{padding:7px 10px;font-size:12px;color:#3266ad;border-top:1px solid #edf2f7;margin-top:4px;cursor:pointer}
+.sg-all:hover{background:#f7fafc}
+mark.sg-hl{background:#fde68a;color:inherit;padding:0 1px;border-radius:2px}
+@keyframes fundFlash{0%,60%{background:#fde68a}100%{background:transparent}}
+tr.fund-flash td{animation:fundFlash 2.2s ease-out}
 .search-input:focus{border-color:#3266ad;box-shadow:0 0 0 3px rgba(50,102,173,.12)}
 .srri-btns{display:flex;gap:4px;align-items:center}
 .srri-btn{width:30px;height:30px;border-radius:50%;border:2px solid transparent;font-size:12px;font-weight:700;color:#fff;cursor:pointer;transition:all .15s;opacity:.55}
@@ -612,8 +629,11 @@ html_parts.append(f"""<header>
 
 # ── Barre de filtres (recherche + SRRI) ──────────────────────────────────────
 html_parts.append(f"""<div class="filter-bar">
-  <label>🔍</label>
-  <input class="search-input" id="searchInput" type="text" placeholder="Rechercher un fonds..." oninput="applyFilters()">
+  <label for="searchInput">🔍</label>
+  <div class="search-wrap">
+    <input class="search-input" id="searchInput" type="search" autocomplete="off" placeholder="Rechercher un fonds : nom, ISIN, société de gestion…" oninput="applyFilters()" onkeydown="searchKey(event)" onfocus="if(this.value.trim())renderSuggest()">
+    <div class="search-suggest" id="searchSuggest" role="listbox"></div>
+  </div>
   <label style="margin-left:8px;font-size:12px;font-weight:600;color:#4a5568">Risque SRRI :</label>
   <div class="srri-btns">
     <button class="srri-btn srri-1" data-srri="1" onclick="toggleSRRI(1)" title="SRRI 1 — Très faible">1</button>
@@ -862,7 +882,7 @@ for i, cat in enumerate(CATEGORIES):
         if _pend:
             top3_cls = (top3_cls + " pending-row").strip()
         _pend_badge = f'<span class="pending-badge" title="{_pend}">En attente</span>' if _pend else ""
-        html_parts.append(f'''<tr class="{top3_cls}">
+        html_parts.append(f'''<tr class="{top3_cls}" id="fund-{f['isin']}">
   <td data-val="{rank+1}">{medal(rank)}</td>
   <td class="fund-name" data-val="{f['name']}">{"<a href='" + bourso_url(bid) + "' target='_blank' class='fund-name-link'>" + f['name'] + "</a>" if bid else f["name"]}{_pend_badge}<br><span class="isin-cell">{f["isin"]}</span></td>
   <td style="text-align:center" data-val="{srri}"><span class="srri-badge srri-{srri}">{srri}</span></td>
@@ -1605,6 +1625,7 @@ function toggleSRRI(n) {{
 
 function applyFilters() {{
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  if (typeof renderSuggest === 'function') renderSuggest();
   const hasSRRI = activeSRRI !== null;
   const hasSearch = q.length > 0;
 
@@ -1618,9 +1639,7 @@ function applyFilters() {{
   // si SRRI seulement → filtre par niveau de risque
   let results;
   if (hasSearch) {{
-    results = ALL_FUNDS.filter(f =>
-      f.name.toLowerCase().includes(q) || f.isin.toLowerCase().includes(q)
-    );
+    results = searchFunds(q);
   }} else {{
     results = ALL_FUNDS.filter(f => f.srri === activeSRRI);
   }}
@@ -1665,6 +1684,7 @@ function applyFilters() {{
 function clearFilters() {{
   activeSRRI = null;
   document.getElementById('searchInput').value = '';
+  if (typeof closeSuggest === 'function') closeSuggest();
   document.querySelectorAll('.srri-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('filterResults').classList.remove('active');
   document.getElementById('mainTabs').style.display = '';
@@ -2783,6 +2803,93 @@ if (document.readyState === 'loading') {
 } else {
   PersoMgr.init();
 }
+</script>""")
+
+
+html_parts.append("""<script>
+/* ── Recherche directe d'un fonds (suggestions + accès à la fiche) ───── */
+function normTxt(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+function searchFunds(q){
+  const words = normTxt(q).split(' ').filter(Boolean);
+  if (!words.length) return [];
+  const scored = [];
+  ALL_FUNDS.forEach(f => {
+    const name = normTxt(f.name), isin = normTxt(f.isin), mgr = normTxt(f.mgr), cat = normTxt(f.cat_label);
+    const hay = name+' '+isin+' '+mgr+' '+cat;
+    if (!words.every(w => hay.includes(w))) return;
+    let s = 0;
+    if (isin === words.join('')) s += 100;
+    words.forEach(w => { if (name.startsWith(w)) s += 10; else if ((' '+name).includes(' '+w)) s += 6; else if (name.includes(w)) s += 3; else if (mgr.includes(w)) s += 1; });
+    scored.push([s, f]);
+  });
+  scored.sort((a,b) => b[0]-a[0] || a[1].name.localeCompare(b[1].name,'fr'));
+  return scored.map(x => x[1]);
+}
+let _sgSel = 0, _sgList = [];
+function _escH(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function _hl(text, q){
+  const words = normTxt(q).split(' ').filter(w => w.length > 1);
+  if (!words.length) return _escH(text);
+  const base = text.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const marks = new Array(text.length).fill(false);
+  words.forEach(w => { let i = base.indexOf(w); while (i >= 0) { for (let k=i;k<i+w.length;k++) marks[k]=true; i = base.indexOf(w, i+1); } });
+  let out = '', open = false;
+  for (let i=0;i<text.length;i++){ if (marks[i] && !open){out+='<mark class="sg-hl">';open=true;} if(!marks[i] && open){out+='</mark>';open=false;} out += _escH(text[i]); }
+  return out + (open ? '</mark>' : '');
+}
+function renderSuggest(){
+  const inp = document.getElementById('searchInput'), box = document.getElementById('searchSuggest');
+  const q = inp.value.trim();
+  if (!q) { closeSuggest(); return; }
+  _sgList = searchFunds(q); _sgSel = 0;
+  const fmtVL = v => v == null ? '—' : v.toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+  if (!_sgList.length) { box.innerHTML = '<div class="sg-empty">Aucun fonds ne correspond à « '+_escH(q)+' »</div>'; box.classList.add('open'); return; }
+  box.innerHTML = _sgList.slice(0,8).map((f,i) =>
+    '<div class="sg-item'+(i===0?' sel':'')+'" role="option" data-i="'+i+'" onmousedown="event.preventDefault();goToFund(\\''+f.isin+'\\')">'
+    + '<span class="srri-badge" style="background:'+srriColor(f.srri)+'">'+(f.srri||'—')+'</span>'
+    + '<div class="sg-main"><div class="sg-name">'+_hl(f.name,q)+'</div><div class="sg-sub">'+_hl(f.isin,q)+' · '+_hl(f.mgr||'',q)+'</div></div>'
+    + '<div class="sg-cat">'+_escH(f.cat_label)+'</div><div class="sg-vl">'+fmtVL(f.vl)+'</div></div>').join('')
+    + (_sgList.length > 1 ? '<div class="sg-all" onmousedown="event.preventDefault();closeSuggest()">Voir les '+_sgList.length+' résultats dans le tableau ↓</div>' : '');
+  box.classList.add('open');
+}
+function closeSuggest(){ const b = document.getElementById('searchSuggest'); if (b){ b.classList.remove('open'); b.innerHTML=''; } }
+function _sgMove(d){
+  const items = document.querySelectorAll('#searchSuggest .sg-item'); if (!items.length) return;
+  _sgSel = (_sgSel + d + items.length) % items.length;
+  items.forEach((el,i) => el.classList.toggle('sel', i===_sgSel));
+  items[_sgSel].scrollIntoView({block:'nearest'});
+}
+function searchKey(e){
+  if (e.key === 'ArrowDown') { e.preventDefault(); _sgMove(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); _sgMove(-1); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (_sgList.length) goToFund(_sgList[Math.min(_sgSel,_sgList.length-1)].isin); }
+  else if (e.key === 'Escape') { clearFilters(); e.target.blur(); }
+}
+function goToFund(isin){
+  const f = ALL_FUNDS.find(x => x.isin === isin); if (!f) return;
+  activeSRRI = null;
+  document.querySelectorAll('.srri-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('searchInput').value = f.name;
+  closeSuggest();
+  document.getElementById('filterResults').classList.remove('active');
+  document.getElementById('mainTabs').style.display = '';
+  showTab(f.cat_id);
+  const tabEl = document.getElementById('tab_'+f.cat_id);
+  if (tabEl) tabEl.scrollIntoView({block:'nearest', inline:'center'});
+  document.querySelectorAll('tr.fund-flash').forEach(r => r.classList.remove('fund-flash'));
+  const row = document.getElementById('fund-'+isin);
+  if (row) {
+    setTimeout(() => {
+      row.scrollIntoView({behavior:'smooth', block:'center'});
+      row.classList.remove('fund-flash'); void row.offsetWidth; row.classList.add('fund-flash');
+    }, 60);
+  }
+  document.getElementById('searchInput').blur();
+}
+document.addEventListener('click', e => { if (!e.target.closest('.search-wrap')) closeSuggest(); });
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) { e.preventDefault(); document.getElementById('searchInput').focus(); }
+});
 </script>""")
 
 output = ''.join(html_parts)
